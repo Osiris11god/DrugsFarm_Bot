@@ -870,10 +870,11 @@ async def buy_seed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user['inventory'][f"🌱 {crop_name}"] = user['inventory'].get(f"🌱 {crop_name}", 0) + 1
     save_user_data(user_data)
 
+    seed_key = f"🌱 {crop_name}"
     await query.edit_message_text(
         f"✅ Куплены семена: {crop_name}\n"
         f"💰 Потрачено: {CROP_DATA[crop_name]['price']} монет\n"
-        f"📦 В инвентаре: {user['inventory'][f"🌱 {crop_name}"]} пакетов",
+        f"📦 В инвентаре: {user['inventory'][seed_key]} пакетов",
         reply_markup=InlineKeyboardMarkup(get_city_keyboard())
     )
 
