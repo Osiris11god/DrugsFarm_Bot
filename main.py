@@ -120,13 +120,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reply_markup = InlineKeyboardMarkup(get_main_keyboard())
 
-    await update.message.reply_text(
-        f"👋 Добро пожаловать в нарколабораторию, {username}!\n"
-        f"💰 Баланс: {money} монет\n"
-        f"📊 Уровень: {level}\n\n"
-        f"Используйте кнопки ниже для управления лабораторией:",
-        reply_markup=reply_markup
-    )
+    try:
+        await update.message.reply_text(
+            f"👋 Добро пожаловать в нарколабораторию, {username}!\n"
+            f"💰 Баланс: {money} монет\n"
+            f"📊 Уровень: {level}\n\n"
+            f"Используйте кнопки ниже для управления лабораторией:",
+            reply_markup=reply_markup
+        )
+    except Exception as e:
+        print(f"Ошибка отправки сообщения пользователю {user_id}: {e}")
+        # Пользователь заблокировал бота или произошла другая ошибка
 
 async def plant_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
