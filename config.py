@@ -1,8 +1,6 @@
 import os
 
 # Конфигурация бота
-BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-if not BOT_TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set")
+BOT_TOKEN = "8572375023:AAHxqX2hr5W1I4u9r-b7U3ooBPRthjh8ZT4"
 
 USER_DATA_FILE = "user_data.json"

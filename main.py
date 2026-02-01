@@ -4,6 +4,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
 import json
 import os
+import logging
 
 try:
     from config import BOT_TOKEN, USER_DATA_FILE
@@ -12,23 +13,71 @@ except ImportError as e:
     print("Убедитесь, что config.py находится в той же папке, что и main.py")
     exit(1)
 CROP_DATA = {
-    '🌿 Marijuana': {'growth_time': 30, 'price': 0, 'emoji': '🌿'},
-    '💊 Cocaine': {'growth_time': 60, 'price': 0, 'emoji': '💊'},
-    '🌺 Opium': {'growth_time': 90, 'price': 0, 'emoji': '🌺'},
-    '💉 Meth': {'growth_time': 120, 'price': 0, 'emoji': '💉'},
-    '🍄 Mushrooms': {'growth_time': 150, 'price': 0, 'emoji': '🍄'},
-    '💉 Heroin': {'growth_time': 45, 'price': 0, 'emoji': '💉'},
-    '💊 LSD': {'growth_time': 75, 'price': 0, 'emoji': '💊'},
-    '💊 Ecstasy': {'growth_time': 180, 'price': 0, 'emoji': '💊'},
-    '🌿 Hash': {'growth_time': 200, 'price': 0, 'emoji': '🌿'},
-    '🍄 Peyote': {'growth_time': 100, 'price': 0, 'emoji': '🍄'}
+    'marijuana': {'name': 'Marijuana', 'growth_time': 10, 'price': 10, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box']},
+    'cocaine': {'name': 'Cocaine', 'growth_time': 20, 'price': 25, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа']},
+    'opium': {'name': 'Opium', 'growth_time': 30, 'price': 15, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва']},
+    'meth': {'name': 'Meth', 'growth_time': 40, 'price': 30, 'emoji': '💉', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва']},
+    'mushrooms': {'name': 'Mushrooms', 'growth_time': 50, 'price': 35, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик']},
+    'heroin': {'name': 'Heroin', 'growth_time': 15, 'price': 45, 'emoji': '💉', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌿 Вентилятор']},
+    'lsd': {'name': 'LSD', 'growth_time': 25, 'price': 50, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🧴 pH Балансировщик']},
+    'ecstasy': {'name': 'Ecstasy', 'growth_time': 60, 'price': 50, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🌿 Вентилятор']},
+    'hash': {'name': 'Hash', 'growth_time': 70, 'price': 20, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа']},
+    'peyote': {'name': 'Peyote', 'growth_time': 35, 'price': 40, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик']},
+    'ketamine': {'name': 'Ketamine', 'growth_time': 50, 'price': 65, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌡️ Термометр']},
+    'dmt': {'name': 'DMT', 'growth_time': 60, 'price': 75, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🔬 Тестер pH']},
+    'mdma': {'name': 'MDMA', 'growth_time': 40, 'price': 60, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
+    'salvia': {'name': 'Salvia', 'growth_time': 45, 'price': 30, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор']},
+    'ayahuasca': {'name': 'Ayahuasca', 'growth_time': 80, 'price': 85, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик', '🔬 Тестер pH']},
+    'mescaline': {'name': 'Mescaline', 'growth_time': 55, 'price': 90, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌡️ Термометр']},
+    'ibogaine': {'name': 'Ibogaine', 'growth_time': 65, 'price': 95, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик']},
+    'morning_glory': {'name': 'Morning Glory', 'growth_time': 35, 'price': 25, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
+    'kratom': {'name': 'Kratom', 'growth_time': 40, 'price': 20, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌿 Вентилятор']},
+    'san_pedro': {'name': 'San Pedro', 'growth_time': 90, 'price': 115, 'emoji': '🌵', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик']},
+    'amanita': {'name': 'Amanita', 'growth_time': 70, 'price': 125, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор']},
+    'psilocybe': {'name': 'Psilocybe', 'growth_time': 55, 'price': 135, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик']},
+    'cannabis_indica': {'name': 'Cannabis Indica', 'growth_time': 45, 'price': 145, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва']},
+    'cannabis_sativa': {'name': 'Cannabis Sativa', 'growth_time': 50, 'price': 155, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌿 Вентилятор']},
+    'tobacco': {'name': 'Tobacco', 'growth_time': 35, 'price': 15, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва']},
+    'coca': {'name': 'Coca', 'growth_time': 65, 'price': 175, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик']},
+    'poppy': {'name': 'Poppy', 'growth_time': 75, 'price': 185, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
+    'belladonna': {'name': 'Belladonna', 'growth_time': 85, 'price': 195, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌡️ Термометр']},
+    'datura': {'name': 'Datura', 'growth_time': 95, 'price': 205, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌿 Вентилятор']},
+    'henbane': {'name': 'Henbane', 'growth_time': 80, 'price': 215, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🔬 Тестер pH']},
+    'wormwood': {'name': 'Wormwood', 'growth_time': 60, 'price': 25, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва']},
+    'valerian': {'name': 'Valerian', 'growth_time': 55, 'price': 35, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
+    'mugwort': {'name': 'Mugwort', 'growth_time': 50, 'price': 45, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва']},
+    'jimsonweed': {'name': 'Jimsonweed', 'growth_time': 70, 'price': 255, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор']},
+    'ephedra': {'name': 'Ephedra', 'growth_time': 45, 'price': 265, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌡️ Термометр']},
+    'kava': {'name': 'Kava', 'growth_time': 85, 'price': 275, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
+    'betel': {'name': 'Betel', 'growth_time': 60, 'price': 285, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик']},
+    'crack': {'name': 'Crack', 'growth_time': 45, 'price': 320, 'emoji': '💎', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик']},
+    'pcp': {'name': 'PCP', 'growth_time': 90, 'price': 380, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик', '🌿 Вентилятор']},
+    'angel_dust': {'name': 'Angel Dust', 'growth_time': 75, 'price': 340, 'emoji': '👼', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва']},
+    'bath_salts': {'name': 'Bath Salts', 'growth_time': 55, 'price': 310, 'emoji': '🛁', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик']},
+    'flakka': {'name': 'Flakka', 'growth_time': 65, 'price': 330, 'emoji': '🔥', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🌿 Вентилятор']}
 }
+
 SHOP_ITEMS = {
     '💧 Вода': {'price': 10, 'effect': 'water'},
     '🧪 Удобрение': {'price': 50, 'effect': 'growth_speed', 'speed_boost': 0.5},
     '🔒 Замок': {'price': 100, 'effect': 'protection'},
     '🌱 Семена': {'price': 25, 'effect': 'seeds'},
-    '🏆 Премиум': {'price': 500, 'effect': 'premium'}
+    '🏆 Премиум': {'price': 500, 'effect': 'premium'},
+    '🏡 Grow Box': {'price': 200, 'effect': 'grow_box', 'capacity': 5},
+    '💡 Лампа': {'price': 150, 'effect': 'lamp', 'speed_boost': 0.3},
+    '🌱 Почва': {'price': 30, 'effect': 'soil'},
+    '🧴 pH Балансировщик': {'price': 40, 'effect': 'ph_balancer'},
+    '🌿 Вентилятор': {'price': 80, 'effect': 'fan', 'speed_boost': 0.2},
+    '💉 Шприц для удобрений': {'price': 60, 'effect': 'syringe'},
+    '🔬 Тестер pH': {'price': 70, 'effect': 'ph_tester'},
+    '🌡️ Термометр': {'price': 50, 'effect': 'thermometer'},
+    '💧 Автопоилка': {'price': 120, 'effect': 'auto_water', 'duration': 3600},
+    '🛡️ Защита от вредителей': {'price': 90, 'effect': 'pest_protection'},
+    '🏡 Расширенный Grow Box': {'price': 400, 'effect': 'grow_box', 'capacity': 10},
+    '📹 Камера безопасности': {'price': 300, 'effect': 'security_camera'},
+    '🚨 Система сигнализации': {'price': 250, 'effect': 'alarm_system'},
+    '💡 Лампа v2': {'price': 300, 'effect': 'lamp', 'speed_boost': 0.5},
+    '🌿 Вентилятор v2': {'price': 200, 'effect': 'fan', 'speed_boost': 0.4}
 }
 DAILY_REWARDS = [10, 15, 20, 25, 30, 35, 40, 50, 60, 75, 100]
 ACHIEVEMENTS = {
@@ -37,6 +86,208 @@ ACHIEVEMENTS = {
     'rich_dealer': {'name': 'Богатый дилер', 'description': 'Накопите 1000 монет', 'reward': 200},
     'plant_master': {'name': 'Мастер лаборатории', 'description': 'Посадите 50 растений', 'reward': 150}
 }
+BUILDINGS = {
+    'cardboard_box': {'name': 'Картонная коробка от холодильника', 'cost': 0, 'capacity': 1, 'description': 'Живешь в коробке возле помойки - 1 грядка'},
+    'small_apartment': {'name': 'Маленькая квартира', 'cost': 5000, 'capacity': 3, 'description': 'Базовое жилье - 3 грядки'},
+    'apartment': {'name': 'Квартира', 'cost': 25000, 'capacity': 5, 'description': 'Улучшенная квартира - 5 грядок'},
+    'house': {'name': 'Дом', 'cost': 100000, 'capacity': 10, 'description': 'Частный дом - 10 грядок'},
+    'warehouse': {'name': 'Склад', 'cost': 250000, 'capacity': 20, 'description': 'Большой склад - 20 грядок'},
+    'hangar': {'name': 'Ангар', 'cost': 500000, 'capacity': 50, 'description': 'Промышленный ангар - 50 грядок'},
+    'penthouse': {'name': 'Пентхаус', 'cost': 1000000, 'capacity': 100, 'description': 'Роскошный пентхаус - 100 грядок'},
+    'mansion': {'name': 'Особняк', 'cost': 2500000, 'capacity': 200, 'description': 'Грандиозный особняк - 200 грядок'}
+}
+BUSINESSES = {
+    'laundromat': {'name': 'Прачечная', 'cost': 10000, 'income_per_hour': 15, 'description': 'Прачечная - 15 монет/час'},
+    'car_wash': {'name': 'Автомойка', 'cost': 25000, 'income_per_hour': 35, 'description': 'Автомойка - 35 монет/час'},
+    'bar': {'name': 'Бар', 'cost': 50000, 'income_per_hour': 75, 'description': 'Бар - 75 монет/час'},
+    'nightclub': {'name': 'Ночной клуб', 'cost': 100000, 'income_per_hour': 150, 'description': 'Ночной клуб - 150 монет/час'},
+    'casino': {'name': 'Казино', 'cost': 250000, 'income_per_hour': 375, 'description': 'Казино - 375 монет/час'},
+    'hotel': {'name': 'Отель', 'cost': 500000, 'income_per_hour': 750, 'description': 'Отель - 750 монет/час'}
+}
+DEALERS = {
+    'street_dealer': {'name': 'Уличный дилер', 'buy_price_multiplier': 1.5, 'reputation_required': 0, 'description': 'Покупает по 1.5x цене'},
+    'club_owner': {'name': 'Владелец клуба', 'buy_price_multiplier': 1.8, 'reputation_required': 10, 'description': 'Покупает по 1.8x цене'},
+    'pharma_rep': {'name': 'Фармацевт', 'buy_price_multiplier': 2.0, 'reputation_required': 25, 'description': 'Покупает по 2.0x цене'},
+    'cartel_member': {'name': 'Член картеля', 'buy_price_multiplier': 2.2, 'reputation_required': 50, 'description': 'Покупает по 2.2x цене'},
+    'underground_boss': {'name': 'Подпольный босс', 'buy_price_multiplier': 2.5, 'reputation_required': 100, 'description': 'Покупает по 2.5x цене'},
+    'international_smuggler': {'name': 'Международный контрабандист', 'buy_price_multiplier': 3.0, 'reputation_required': 200, 'description': 'Покупает по 3.0x цене'}
+}
+QUESTS = {
+    'daily_harvest': {'name': 'Ежедневный урожай', 'description': 'Соберите 5 растений сегодня', 'reward': 50, 'type': 'daily', 'target': 5},
+    'weekly_sell': {'name': 'Еженедельные продажи', 'description': 'Продайте 20 единиц наркотиков за неделю', 'reward': 200, 'type': 'weekly', 'target': 20},
+    'first_dealer': {'name': 'Первый дилер', 'description': 'Продайте урожай дилеру', 'reward': 100, 'type': 'achievement', 'target': 1},
+    'big_farmer': {'name': 'Большой фермер', 'description': 'Посадите 100 растений', 'reward': 500, 'type': 'achievement', 'target': 100},
+    'millionaire': {'name': 'Миллионер', 'description': 'Накопите 1,000,000 монет', 'reward': 1000, 'type': 'achievement', 'target': 1000000}
+}
+
+LOCATIONS = {
+    'downtown': {'name': 'Центр города', 'risk_level': 3, 'dealer_multiplier': 1.2, 'description': 'Высокий риск, хорошие цены'},
+    'suburbs': {'name': 'Пригород', 'risk_level': 1, 'dealer_multiplier': 1.0, 'description': 'Низкий риск, средние цены'},
+    'industrial': {'name': 'Промзона', 'risk_level': 2, 'dealer_multiplier': 1.1, 'description': 'Средний риск, хорошие цены'},
+    'university': {'name': 'Университет', 'risk_level': 4, 'dealer_multiplier': 1.3, 'description': 'Высокий риск, отличные цены'},
+    'slums': {'name': 'Трущобы', 'risk_level': 5, 'dealer_multiplier': 1.4, 'description': 'Очень высокий риск, максимальные цены'}
+}
+
+RESEARCH = {
+    'basic_lab': {'name': 'Базовая лаборатория', 'cost': 5000, 'unlocks': ['meth', 'lsd'], 'description': 'Разблокирует базовые синтетические наркотики'},
+    'advanced_lab': {'name': 'Продвинутая лаборатория', 'cost': 25000, 'unlocks': ['ecstasy', 'ketamine'], 'description': 'Разблокирует продвинутые синтетики'},
+    'exotic_lab': {'name': 'Экзотическая лаборатория', 'cost': 100000, 'unlocks': ['dmt', 'ibogaine'], 'description': 'Разблокирует редкие психоделики'},
+    'ultimate_lab': {'name': 'Ультимативная лаборатория', 'cost': 500000, 'unlocks': ['crack', 'pcp', 'angel_dust', 'bath_salts', 'flakka'], 'description': 'Разблокирует все опасные вещества'}
+}
+
+RISK_EVENTS = {
+    'police_raid': {'name': 'Налёт полиции', 'chance': 0.05, 'penalty': 'lose_half_plants', 'description': 'Полиция конфискует половину растений'},
+    'thief': {'name': 'Вор', 'chance': 0.03, 'penalty': 'lose_money', 'description': 'Вор крадёт часть денег'},
+    'pest_infestation': {'name': 'Вредители', 'chance': 0.04, 'penalty': 'lose_plants', 'description': 'Вредители уничтожают растения'},
+    'equipment_failure': {'name': 'Поломка оборудования', 'chance': 0.02, 'penalty': 'lose_equipment', 'description': 'Оборудование выходит из строя'}
+}
+
+ANIMALS = {
+    'chicken': {'name': '🐔 Курица', 'cost': 500, 'description': '+10% скорость роста'},
+    'cow': {'name': '🐄 Корова', 'cost': 1000, 'description': '+20% урожай'},
+    'pig': {'name': '🐖 Свинья', 'cost': 750, 'description': '+15% деньги'},
+    'sheep': {'name': '🐑 Овца', 'cost': 600, 'description': '+25% опыт'},
+    'horse': {'name': '🐎 Лошадь', 'cost': 1500, 'description': '+5% ко всем'}
+}
+
+# ========== ФУНКЦИИ РИСКОВЫХ СОБЫТИЙ ==========
+def check_risk_event(user, action='general'):
+    """Проверяет, произошло ли рисковое событие"""
+    import random
+
+    current_location = user.get('current_location', 'suburbs')
+    location_risk = LOCATIONS.get(current_location, {}).get('risk_level', 1)
+
+    # Базовый шанс события умножается на уровень риска локации
+    base_chance = 0.01  # 1% базовый шанс
+    risk_multiplier = location_risk * 0.1  # 10% за уровень риска
+    total_chance = base_chance + risk_multiplier
+
+    if random.random() < total_chance:
+        # Выбираем случайное событие
+        event_id = random.choice(list(RISK_EVENTS.keys()))
+        return RISK_EVENTS[event_id]
+
+    return None
+
+def apply_risk_penalty(user, event_data):
+    """Применяет штраф от рискового события"""
+    penalty = event_data['penalty']
+    penalty_messages = []
+
+    if penalty == 'lose_half_plants':
+        plant_count = len(user['plants'])
+        lost_count = plant_count // 2
+        # Удаляем половину растений
+        plant_ids = list(user['plants'].keys())[:lost_count]
+        for plant_id in plant_ids:
+            del user['plants'][plant_id]
+        penalty_messages.append(f"🚔 Полиция конфисковала {lost_count} растений!")
+
+    elif penalty == 'lose_money':
+        lost_money = min(user['money'] // 4, 500)  # Максимум 500 или 25% денег
+        user['money'] -= lost_money
+        penalty_messages.append(f"🕵️‍♂️ Вор украл {lost_money} монет!")
+
+    elif penalty == 'lose_plants':
+        if user['plants']:
+            # Уничтожаем 1-3 растения
+            lost_count = min(len(user['plants']), random.randint(1, 3))
+            plant_ids = list(user['plants'].keys())[:lost_count]
+            for plant_id in plant_ids:
+                del user['plants'][plant_id]
+            penalty_messages.append(f"🐛 Вредители уничтожили {lost_count} растений!")
+
+    elif penalty == 'lose_equipment':
+        # Повреждаем случайное оборудование
+        equipment_items = [item for item in user['inventory'].keys() if item in SHOP_ITEMS and SHOP_ITEMS[item].get('effect') in ['lamp', 'fan', 'ph_balancer', 'auto_water']]
+        if equipment_items:
+            lost_item = random.choice(equipment_items)
+            user['inventory'][lost_item] -= 1
+            if user['inventory'][lost_item] <= 0:
+                del user['inventory'][lost_item]
+            penalty_messages.append(f"🔧 {lost_item} сломалось!")
+
+    return penalty_messages
+
+# ========== НОВЫЕ ФУНКЦИИ ИЗ SCHEDULE I ==========
+def get_main_keyboard():
+    return [
+        [InlineKeyboardButton("👤 Мой профиль", callback_data='my_profile'),
+         InlineKeyboardButton("🏭 Моя лаборатория", callback_data='my_lab'),
+         InlineKeyboardButton("✈️ Путешествие", callback_data='trip')],
+        [InlineKeyboardButton("👥 Друзья", callback_data='friends'),
+         InlineKeyboardButton("🏪 Магазин", callback_data='shop'),
+         InlineKeyboardButton("🎰 Казино", callback_data='location_casino')],
+        [InlineKeyboardButton("📜 Квесты", callback_data='quests'),
+         InlineKeyboardButton("🔬 Исследования", callback_data='research'),
+         InlineKeyboardButton("👨‍💼 Дилеры", callback_data='dealers')]
+    ]
+
+def get_lab_keyboard():
+    return [
+        [InlineKeyboardButton("🌱 Начать синтез", callback_data='plant_menu'),
+         InlineKeyboardButton("👀 Осмотреть партии", callback_data='inspect_plants')],
+        [InlineKeyboardButton("💧 Добавить растворитель", callback_data='water_all'),
+         InlineKeyboardButton("🧪 Добавить реагент", callback_data='fertilize_plants')],
+        [InlineKeyboardButton("👨‍🔬 Завершить синтез", callback_data='harvest_all'),
+         InlineKeyboardButton("🎁 Ежедневный бонус", callback_data='daily_reward')],
+        [InlineKeyboardButton("📊 Статус лаборатории", callback_data='status'),
+         InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
+    ]
+
+def get_city_keyboard():
+    return [
+        [InlineKeyboardButton("🌱 Магазин прекурсоров", callback_data='seed_shop'),
+         InlineKeyboardButton("🏪 Рынок", callback_data='market')],
+        [InlineKeyboardButton("🏪 Магазин химикатов", callback_data='shop'),
+         InlineKeyboardButton("🔧 Оборудование", callback_data='equipment_shop')],
+        [InlineKeyboardButton("🏠 Жилье", callback_data='housing_shop'),
+         InlineKeyboardButton("🏢 Бизнесы", callback_data='business_shop')],
+        [InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
+    ]
+
+def get_trip_keyboard():
+    return [
+        [InlineKeyboardButton("🏙️ Центр города", callback_data='location_downtown'),
+         InlineKeyboardButton("🏘️ Пригород", callback_data='location_suburbs')],
+        [InlineKeyboardButton("🏭 Промзона", callback_data='location_industrial'),
+         InlineKeyboardButton("🎓 Университет", callback_data='location_university')],
+        [InlineKeyboardButton("🏚️ Трущобы", callback_data='location_slums'),
+         InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
+    ]
+
+def get_dealers_keyboard():
+    return [
+        [InlineKeyboardButton("👨‍💼 Уличный дилер", callback_data='dealer_street_dealer'),
+         InlineKeyboardButton("👔 Владелец клуба", callback_data='dealer_club_owner')],
+        [InlineKeyboardButton("💼 Фармацевт", callback_data='dealer_pharma_rep'),
+         InlineKeyboardButton("🕴️ Член картеля", callback_data='dealer_cartel_member')],
+        [InlineKeyboardButton("🕵️‍♂️ Подпольный босс", callback_data='dealer_underground_boss'),
+         InlineKeyboardButton("🚢 Междунар. контрабандист", callback_data='dealer_international_smuggler')],
+        [InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
+    ]
+
+def get_farm_keyboard():
+    return [
+        [InlineKeyboardButton("🌱 Начать синтез", callback_data='plant_menu'),
+         InlineKeyboardButton("👀 Осмотреть партии", callback_data='inspect_plants')],
+        [InlineKeyboardButton("💧 Добавить растворитель", callback_data='water_all'),
+         InlineKeyboardButton("🧪 Добавить реагент", callback_data='fertilize_plants')],
+        [InlineKeyboardButton("👨‍🔬 Завершить синтез", callback_data='harvest_all'),
+         InlineKeyboardButton("🎁 Ежедневный бонус", callback_data='daily_reward')],
+        [InlineKeyboardButton("📊 Статус лаборатории", callback_data='status'),
+         InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
+    ]
+
+def get_casino_keyboard():
+    return [
+        [InlineKeyboardButton("🎰 Рулетка", callback_data='roulette'),
+         InlineKeyboardButton("🃏 Блэкджек", callback_data='blackjack')],
+        [InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
+    ]
+
+
 
 # ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ДАННЫМИ ==========
 def load_user_data():
@@ -56,44 +307,191 @@ def save_user_data(data):
     except IOError as e:
         print(f"Ошибка сохранения данных: {e}")
 
-def get_main_keyboard():
-    return [
-        [InlineKeyboardButton("🏭 Ферма", callback_data='location_farm'),
-         InlineKeyboardButton("🏙️ Город", callback_data='location_city'),
-         InlineKeyboardButton("🎰 Казино", callback_data='location_casino')],
-        [InlineKeyboardButton("📦 Инвентарь", callback_data='inventory'),
-         InlineKeyboardButton("🏆 Достижения", callback_data='achievements')],
-        [InlineKeyboardButton("ℹ️ Помощь", callback_data='help')]
-    ]
+# ========== ОБРАБОТЧИКИ КОМАНД ==========
+async def my_lab(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
-def get_farm_keyboard():
-    return [
-        [InlineKeyboardButton("🌱 Посадить растение", callback_data='plant_menu'),
-         InlineKeyboardButton("👀 Осмотреть растения", callback_data='inspect_plants')],
-        [InlineKeyboardButton("💧 Полить растения", callback_data='water_all'),
-         InlineKeyboardButton("🧪 Удобрить растения", callback_data='fertilize_plants')],
-        [InlineKeyboardButton("👨‍🌾 Собрать урожай", callback_data='harvest_all'),
-         InlineKeyboardButton("🎁 Ежедневный бонус", callback_data='daily_reward')],
-        [InlineKeyboardButton("📊 Статус фермы", callback_data='status'),
-         InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
-    ]
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
 
-def get_city_keyboard():
-    return [
-        [InlineKeyboardButton("🌱 Магазин семян", callback_data='seed_shop'),
-         InlineKeyboardButton("🏪 Рынок", callback_data='market')],
-        [InlineKeyboardButton("🏪 Магазин химика", callback_data='shop'),
-         InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
-    ]
+    money = user.get('money', 0)
+    level = user.get('level', 1)
 
-def get_casino_keyboard():
-    return [
-        [InlineKeyboardButton("🎰 Рулетка", callback_data='roulette'),
-         InlineKeyboardButton("🃏 Блэкджек", callback_data='blackjack')],
-        [InlineKeyboardButton("🎲 Угадай число", callback_data='game_guess_number'),
-         InlineKeyboardButton("🪙 Орёл или решка", callback_data='game_coin_flip')],
-        [InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
-    ]
+    await query.edit_message_text(
+        f"🏭 Добро пожаловать в лабораторию!\n\n"
+        f"💰 Баланс: {money} монет\n"
+        f"📊 Уровень: {level}\n\n"
+        f"Здесь вы можете управлять своими синтезами:",
+        reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
+    )
+
+async def dealers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "👨‍💼 Дилеры:\n\n"
+        "Выберите дилера для продажи:",
+        reply_markup=InlineKeyboardMarkup(get_dealers_keyboard())
+    )
+
+async def dealer_sell(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    dealer_id = query.data.replace('dealer_', '')
+    user_id = str(query.from_user.id)
+
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    if dealer_id not in DEALERS:
+        await query.edit_message_text("❌ Недействительный дилер!", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
+        return
+
+    dealer_data = DEALERS[dealer_id]
+
+    if user.get('reputation', 0) < dealer_data['reputation_required']:
+        await query.edit_message_text(
+            f"❌ Недостаточно репутации! Нужно {dealer_data['reputation_required']} репутации.",
+            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        )
+        return
+
+    # Simple selling logic - sell all harvest items
+    harvest_items = {}
+    for item, quantity in user['inventory'].items():
+        if item.startswith('🌿') or item.startswith('💊') or item.startswith('🌺') or item.startswith('💉') or item.startswith('🍄'):
+            harvest_items[item] = quantity
+
+    if not harvest_items:
+        await query.edit_message_text(
+            "❌ У вас нет товара для продажи!",
+            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        )
+        return
+
+    total_earned = 0
+    sold_items = []
+
+    for item_name, quantity in harvest_items.items():
+        crop_name = item_name[2:].strip().lower()
+        if crop_name in CROP_DATA:
+            sell_price = CROP_DATA[crop_name]['price'] * dealer_data['buy_price_multiplier']
+            total_earned += sell_price * quantity
+            sold_items.append(f"{item_name} x{quantity}")
+            del user['inventory'][item_name]
+
+    user['money'] += total_earned
+    user['reputation'] = user.get('reputation', 0) + len(sold_items)
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"✅ Продано дилеру {dealer_data['name']}!\n"
+        f"📦 Товары: {', '.join(sold_items)}\n"
+        f"💰 Заработано: {total_earned} монет\n"
+        f"⭐ Репутация: +{len(sold_items)}\n"
+        f"💰 Баланс: {user['money']} монет",
+        reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+    )
+
+async def location_downtown(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    # Apply location effects
+    location_data = LOCATIONS['downtown']
+    user['current_location'] = 'downtown'
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"🏙️ Добро пожаловать в {location_data['name']}!\n\n"
+        f"{location_data['description']}\n\n"
+        f"💰 Баланс: {user['money']} монет",
+        reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+    )
+
+async def location_suburbs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    location_data = LOCATIONS['suburbs']
+    user['current_location'] = 'suburbs'
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"🏘️ Добро пожаловать в {location_data['name']}!\n\n"
+        f"{location_data['description']}\n\n"
+        f"💰 Баланс: {user['money']} монет",
+        reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+    )
+
+async def location_industrial(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    location_data = LOCATIONS['industrial']
+    user['current_location'] = 'industrial'
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"🏭 Добро пожаловать в {location_data['name']}!\n\n"
+        f"{location_data['description']}\n\n"
+        f"💰 Баланс: {user['money']} монет",
+        reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+    )
+
+async def location_university(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    location_data = LOCATIONS['university']
+    user['current_location'] = 'university'
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"🎓 Добро пожаловать в {location_data['name']}!\n\n"
+        f"{location_data['description']}\n\n"
+        f"💰 Баланс: {user['money']} монет",
+        reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+    )
+
+async def location_slums(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    location_data = LOCATIONS['slums']
+    user['current_location'] = 'slums'
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"🏚️ Добро пожаловать в {location_data['name']}!\n\n"
+        f"{location_data['description']}\n\n"
+        f"💰 Баланс: {user['money']} монет",
+        reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+    )
 
 # ========== ОБРАБОТЧИКИ КОМАНД ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -108,8 +506,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'experience': 0,
             'level': 1,
             'plants': {},
-            'inventory': {'💧 Вода': 3, '🌱 🌿 Marijuana': 1},  # Добавляем семена для теста
+            'inventory': {'💧 Вода': 3, '🌱 marijuana': 1},  # Добавляем семена для теста
             'last_watered': {},
+            'building': 'cardboard_box',  # Живет в коробке возле помойки
+            'businesses': {},  # Купленные бизнесы с временем последнего сбора
+            'last_business_collection': {},  # Время последнего сбора дохода от бизнесов
             'created_at': datetime.now().isoformat()
         }
         save_user_data(user_data)
@@ -148,7 +549,7 @@ async def plant_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             crop = CROP_DATA[crop_name]
             keyboard.append([
                 InlineKeyboardButton(
-                    f"{crop['emoji']} {crop_name} ({crop['growth_time']}с)",
+                    f"{crop['emoji']} {crop['name']} ({crop['growth_time']}с)",
                     callback_data=f"plant_{crop_name}"
                 )
             ])
@@ -187,25 +588,85 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # Проверяем наличие Grow Box
+    if '🏡 Grow Box' not in user['inventory'] or user['inventory']['🏡 Grow Box'] <= 0:
+        await query.edit_message_text(
+            f"❌ У вас нет Grow Box для посадки растений!\nКупите в магазине оборудования.",
+            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        )
+        return
+
+    # Проверяем наличие места в здании
+    current_building = user.get('building', 'small_apartment')
+    building_capacity = BUILDINGS[current_building]['capacity']
+    current_plants = len(user['plants'])
+    if current_plants >= building_capacity:
+        await query.edit_message_text(
+            f"❌ {BUILDINGS[current_building]['name']} полон! Максимум {building_capacity} растений.\nСоберите урожай, чтобы освободить место.",
+            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        )
+        return
+
+    # Проверяем наличие необходимого оборудования
+    required_equipment = CROP_DATA[crop_name].get('required_equipment', [])
+    missing_equipment = []
+    for equipment in required_equipment:
+        if equipment not in user['inventory'] or user['inventory'][equipment] <= 0:
+            missing_equipment.append(equipment)
+
+    if missing_equipment:
+        await query.edit_message_text(
+            f"❌ Недостаточно оборудования для посадки {crop_name}!\n"
+            f"Необходимо: {', '.join(missing_equipment)}\n"
+            f"Купите оборудование в магазине города.",
+            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        )
+        return
+
+    # Рассчитываем эффективное время роста с учётом оборудования
+    base_growth_time = CROP_DATA[crop_name]['growth_time']
+    speed_boost = 0.0
+
+    # Проверяем наличие оборудования для ускорения роста
+    if '💡 Лампа' in user['inventory'] and user['inventory']['💡 Лампа'] > 0:
+        speed_boost += 0.3  # 30% ускорение
+
+    if '🌿 Вентилятор' in user['inventory'] and user['inventory']['🌿 Вентилятор'] > 0:
+        speed_boost += 0.2  # 20% ускорение
+
+    # Применяем ускорение (не больше 50% общего ускорения)
+    speed_boost = min(speed_boost, 0.5)
+    effective_growth_time = base_growth_time * (1 - speed_boost)
+
     # Создаём уникальный ID для растения
     plant_id = f"{crop_name}_{int(time.time())}"
 
     user['plants'][plant_id] = {
         'name': crop_name,
         'planted_time': time.time(),
-        'growth_time': CROP_DATA[crop_name]['growth_time'],
+        'growth_time': effective_growth_time,
         'harvest_value': CROP_DATA[crop_name]['price'] * 2
     }
 
     user['inventory'][seed_name] -= 1
     if user['inventory'][seed_name] == 0:
         del user['inventory'][seed_name]
+
+    # Check for risk events
+    risk_event = check_risk_event(user, 'plant')
+    if risk_event:
+        penalty_messages = apply_risk_penalty(user, risk_event)
+        risk_message = f"\n\n⚠️ Рисковое событие: {risk_event['name']}\n{chr(10).join(penalty_messages)}"
+    else:
+        risk_message = ""
+
     save_user_data(user_data)
 
     await query.edit_message_text(
         f"✅ Посажено: {crop_name}\n"
-        f"⏳ Время роста: {CROP_DATA[crop_name]['growth_time']} секунд\n"
-        f"💰 Потенциальный доход: {CROP_DATA[crop_name]['price'] * 2} монет",
+        f"⏳ Время роста: {int(effective_growth_time)} секунд\n"
+        f"💰 Потенциальный доход: {CROP_DATA[crop_name]['price'] * 2} монет\n"
+        f"🏡 Растений в Grow Box: {current_plants + 1}/5{risk_message}",
         reply_markup=InlineKeyboardMarkup(get_main_keyboard())
     )
 
@@ -253,6 +714,9 @@ async def harvest_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = str(query.from_user.id)
     user_data = load_user_data()
+    if user_id not in user_data:
+        await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
+        return
     user = user_data[user_id]
 
     current_time = time.time()
@@ -266,18 +730,18 @@ async def harvest_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if growth_elapsed >= plant['growth_time'] and is_recently_watered:
             crop_name = plant['name']
             crop_emoji = CROP_DATA[crop_name]['emoji']
-            harvest_item = f"{crop_emoji} {crop_name}"
+            harvest_item = f"{crop_emoji} {CROP_DATA[crop_name]['name']}"
             user['inventory'][harvest_item] = user['inventory'].get(harvest_item, 0) + 1
             user['experience'] += 10
-            harvested_plants.append(crop_name)
+            harvested_plants.append(CROP_DATA[crop_name]['name'])
             del user['plants'][plant_id]
 
     if harvested_plants:
         # Проверка уровня
         exp_needed = user['level'] * 100
         if user['experience'] >= exp_needed:
+            user['experience'] -= exp_needed
             user['level'] += 1
-            user['experience'] = 0
             level_up_msg = f"\n🎉 Уровень повышен! Новый уровень: {user['level']}"
         else:
             level_up_msg = ""
@@ -388,6 +852,9 @@ async def show_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = str(query.from_user.id)
     user_data = load_user_data()
+    if user_id not in user_data:
+        await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
+        return
     user = user_data[user_id]
 
     current_time = time.time()
@@ -433,6 +900,9 @@ async def daily_reward(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = str(query.from_user.id)
     user_data = load_user_data()
+    if user_id not in user_data:
+        await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
+        return
     user = user_data[user_id]
 
     current_date = datetime.now().date().isoformat()
@@ -796,6 +1266,9 @@ async def fertilize_plants(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = str(query.from_user.id)
     user_data = load_user_data()
+    if user_id not in user_data:
+        await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
+        return
     user = user_data[user_id]
 
     if '🧪 Удобрение' not in user['inventory'] or user['inventory']['🧪 Удобрение'] <= 0:
@@ -901,7 +1374,7 @@ async def market(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if harvest_items:
         keyboard = []
         for item_name, quantity in harvest_items.items():
-            crop_name = item_name[2:]  # Убираем эмодзи
+            crop_name = item_name[2:].strip().lower()  # Убираем эмодзи и приводим к нижнему регистру
             if crop_name in CROP_DATA:
                 sell_price = CROP_DATA[crop_name]['price'] * 2
                 market_text += f"{item_name}: {quantity} шт. - {sell_price}💰 за шт.\n"
@@ -943,7 +1416,7 @@ async def sell_harvest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    crop_name = item_name[2:]  # Убираем эмодзи
+    crop_name = item_name[2:].strip().lower()  # Убираем эмодзи и приводим к нижнему регистру
     sell_price = CROP_DATA[crop_name]['price'] * 2
     quantity = user['inventory'][item_name]
 
@@ -1220,6 +1693,479 @@ async def bj_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(get_casino_keyboard())
     )
 
+async def equipment_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    keyboard = []
+    equipment_items = ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик', '🌿 Вентилятор', '💉 Шприц для удобрений', '🔬 Тестер pH', '🌡️ Термометр', '💧 Автопоилка', '🛡️ Защита от вредителей']
+
+    for item_name in equipment_items:
+        if item_name in SHOP_ITEMS:
+            item_data = SHOP_ITEMS[item_name]
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{item_name} - {item_data['price']}💰",
+                    callback_data=f"buy_{item_name}"
+                )
+            ])
+
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data='location_city')])
+
+    await query.edit_message_text(
+        "🔧 Магазин оборудования:\n\n"
+        "🏡 Grow Box - 200💰 (контейнер для растений, вмещает 5 растений)\n"
+        "💡 Лампа - 150💰 (ускоряет рост на 30%)\n"
+        "🌱 Почва - 30💰 (улучшает условия роста)\n"
+        "🧴 pH Балансировщик - 40💰 (балансирует pH почвы)\n"
+        "🌿 Вентилятор - 80💰 (ускоряет рост на 20%)\n"
+        "💉 Шприц для удобрений - 60💰 (для удобрений)\n"
+        "🔬 Тестер pH - 70💰 (проверяет pH почвы)\n"
+        "🌡️ Термометр - 50💰 (контролирует температуру)\n"
+        "💧 Автопоилка - 120💰 (автоматический полив на 1 час)\n"
+        "🛡️ Защита от вредителей - 90💰 (защищает растения)\n\n"
+        "Выберите оборудование для покупки:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def housing_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    current_building = user.get('building', 'cardboard_box')
+    current_capacity = BUILDINGS[current_building]['capacity']
+
+    keyboard = []
+    for building_id, building_data in BUILDINGS.items():
+        if building_id != current_building:
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{building_data['name']} - {building_data['cost']}💰 ({building_data['capacity']} грядок)",
+                    callback_data=f"buy_building_{building_id}"
+                )
+            ])
+
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data='location_city')])
+
+    await query.edit_message_text(
+        f"🏠 Магазин жилья:\n\n"
+        f"Текущее жилье: {BUILDINGS[current_building]['name']} ({current_capacity} грядок)\n\n"
+        f"Доступные улучшения:\n"
+        f"Маленькая квартира - 5000💰 (3 грядки)\n"
+        f"Квартира - 25000💰 (5 грядок)\n"
+        f"Дом - 100000💰 (10 грядок)\n"
+        f"Склад - 250000💰 (20 грядок)\n"
+        f"Ангар - 500000💰 (50 грядок)\n\n"
+        f"Выберите жилье для покупки:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def business_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    keyboard = []
+    for business_id, business_data in BUSINESSES.items():
+        if business_id not in user.get('businesses', {}):
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{business_data['name']} - {business_data['cost']}💰",
+                    callback_data=f"buy_business_{business_id}"
+                )
+            ])
+
+    keyboard.append([InlineKeyboardButton("💰 Собрать доход", callback_data='collect_business_income')])
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data='location_city')])
+
+    business_text = "🏢 Магазин бизнесов:\n\n"
+    business_text += "Купите бизнесы для пассивного дохода:\n\n"
+
+    for business_id, business_data in BUSINESSES.items():
+        owned = business_id in user.get('businesses', {})
+        status = "✅" if owned else "❌"
+        business_text += f"{status} {business_data['name']} - {business_data['income_per_hour']}💰/час\n"
+
+    business_text += "\nВыберите бизнес для покупки:"
+
+    await query.edit_message_text(
+        business_text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def buy_building(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    building_id = query.data.replace('buy_building_', '')
+    user_id = str(query.from_user.id)
+
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    if building_id not in BUILDINGS:
+        await query.edit_message_text("❌ Недействительное здание!", reply_markup=InlineKeyboardMarkup(get_city_keyboard()))
+        return
+
+    building_data = BUILDINGS[building_id]
+    current_building = user.get('building', 'small_apartment')
+
+    if building_id == current_building:
+        await query.edit_message_text("❌ У вас уже есть это здание!", reply_markup=InlineKeyboardMarkup(get_city_keyboard()))
+        return
+
+    if user['money'] < building_data['cost']:
+        await query.edit_message_text(
+            f"❌ Недостаточно денег для покупки {building_data['name']}!",
+            reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+        )
+        return
+
+    user['money'] -= building_data['cost']
+    user['building'] = building_id
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"✅ Куплено: {building_data['name']}\n"
+        f"💰 Потрачено: {building_data['cost']} монет\n"
+        f"🏠 Новое жилье: {building_data['name']} ({building_data['capacity']} грядок)",
+        reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+    )
+
+async def buy_business(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    business_id = query.data.replace('buy_business_', '')
+    user_id = str(query.from_user.id)
+
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    if business_id not in BUSINESSES:
+        await query.edit_message_text("❌ Недействительный бизнес!", reply_markup=InlineKeyboardMarkup(get_city_keyboard()))
+        return
+
+    if business_id in user.get('businesses', {}):
+        await query.edit_message_text("❌ У вас уже есть этот бизнес!", reply_markup=InlineKeyboardMarkup(get_city_keyboard()))
+        return
+
+    business_data = BUSINESSES[business_id]
+
+    if user['money'] < business_data['cost']:
+        await query.edit_message_text(
+            f"❌ Недостаточно денег для покупки {business_data['name']}!",
+            reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+        )
+        return
+
+    user['money'] -= business_data['cost']
+    user.setdefault('businesses', {})[business_id] = time.time()
+    user.setdefault('last_business_collection', {})[business_id] = time.time()
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"✅ Куплен бизнес: {business_data['name']}\n"
+        f"💰 Потрачено: {business_data['cost']} монет\n"
+        f"📈 Доход: {business_data['income_per_hour']} монет/час",
+        reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+    )
+
+async def collect_business_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    current_time = time.time()
+    total_income = 0
+    collected_businesses = []
+
+    for business_id, purchase_time in user.get('businesses', {}).items():
+        last_collection = user.get('last_business_collection', {}).get(business_id, purchase_time)
+        hours_passed = (current_time - last_collection) / 3600
+        business_data = BUSINESSES[business_id]
+        income = int(hours_passed * business_data['income_per_hour'])
+
+        if income > 0:
+            total_income += income
+            collected_businesses.append(business_data['name'])
+            user['last_business_collection'][business_id] = current_time
+
+    if total_income > 0:
+        user['money'] += total_income
+        save_user_data(user_data)
+
+        await query.edit_message_text(
+            f"💰 Собрано дохода от бизнесов!\n"
+            f"📈 Всего: +{total_income} монет\n"
+            f"🏢 Бизнесы: {', '.join(collected_businesses)}\n"
+            f"💰 Баланс: {user['money']} монет",
+            reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+        )
+    else:
+        await query.edit_message_text(
+            "⏳ Ещё рано собирать доход. Подождите немного!",
+            reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+        )
+
+# ========== НОВЫЕ ОБРАБОТЧИКИ ДЛЯ НОВОГО МЕНЮ ==========
+async def my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    username = user.get('username', 'Неизвестно')
+    money = user.get('money', 0)
+    level = user.get('level', 1)
+    experience = user.get('experience', 0)
+    building = user.get('building', 'cardboard_box')
+    building_name = BUILDINGS.get(building, {}).get('name', 'Неизвестно')
+    plants_count = len(user.get('plants', {}))
+    businesses_count = len(user.get('businesses', {}))
+
+    profile_text = (
+        f"👤 Ваш профиль:\n\n"
+        f"Имя: {username}\n"
+        f"💰 Деньги: {money} монет\n"
+        f"📊 Уровень: {level}\n"
+        f"⭐ Опыт: {experience}/{level * 100}\n"
+        f"🏠 Жилье: {building_name}\n"
+        f"🌱 Растений: {plants_count}\n"
+        f"🏢 Бизнесов: {businesses_count}\n"
+    )
+
+    keyboard = [[InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]]
+
+    await query.edit_message_text(
+        profile_text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def my_farm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    money = user.get('money', 0)
+    level = user.get('level', 1)
+
+    await query.edit_message_text(
+        f"🏭 Добро пожаловать на ферму!\n\n"
+        f"💰 Баланс: {money} монет\n"
+        f"📊 Уровень: {level}\n\n"
+        f"Здесь вы можете управлять своими растениями:",
+        reply_markup=InlineKeyboardMarkup(get_farm_keyboard())
+    )
+
+async def trip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "✈️ Путешествие:\n\n"
+        "Выберите локацию для путешествия:",
+        reply_markup=InlineKeyboardMarkup(get_trip_keyboard())
+    )
+
+async def friends(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    # Простая заглушка для друзей (можно расширить позже)
+    friends_text = (
+        "👥 Друзья:\n\n"
+        "Функция друзей пока в разработке.\n"
+        "Здесь будут отображаться ваши друзья и их достижения.\n"
+    )
+
+    keyboard = [[InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]]
+
+    await query.edit_message_text(
+        friends_text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def quests(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    quests_text = "📜 Ваши квесты:\n\n"
+
+    for quest_id, quest_data in QUESTS.items():
+        completed = user.get('completed_quests', {}).get(quest_id, False)
+        status = "✅" if completed else "❌"
+        quests_text += f"{status} {quest_data['name']}\n{quest_data['description']}\n"
+
+        if not completed:
+            quests_text += f"Цель: {quest_data['target']}\n"
+        else:
+            quests_text += f"💰 Награда: {quest_data['reward']} монет\n"
+        quests_text += "\n"
+
+    keyboard = [[InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]]
+
+    await query.edit_message_text(
+        quests_text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def research(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    research_text = "🔬 Исследования:\n\n"
+
+    for research_id, research_data in RESEARCH.items():
+        unlocked = research_id in user.get('unlocked_research', [])
+        status = "✅" if unlocked else "❌"
+        research_text += f"{status} {research_data['name']}\n{research_data['description']}\n"
+
+        if not unlocked:
+            research_text += f"Стоимость: {research_data['cost']} монет\n"
+        research_text += "\n"
+
+    keyboard = []
+    for research_id, research_data in RESEARCH.items():
+        if research_id not in user.get('unlocked_research', []):
+            keyboard.append([InlineKeyboardButton(
+                f"🔬 {research_data['name']} - {research_data['cost']}💰",
+                callback_data=f"research_{research_id}"
+            )])
+
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')])
+
+    await query.edit_message_text(
+        research_text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def buy_research(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    research_id = query.data.replace('research_', '')
+    user_id = str(query.from_user.id)
+
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    if research_id not in RESEARCH:
+        await query.edit_message_text("❌ Недействительное исследование!", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
+        return
+
+    if research_id in user.get('unlocked_research', []):
+        await query.edit_message_text("❌ Исследование уже разблокировано!", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
+        return
+
+    research_data = RESEARCH[research_id]
+
+    if user['money'] < research_data['cost']:
+        await query.edit_message_text(
+            f"❌ Недостаточно денег для исследования {research_data['name']}!",
+            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        )
+        return
+
+    user['money'] -= research_data['cost']
+    user.setdefault('unlocked_research', []).append(research_id)
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"✅ Исследование разблокировано: {research_data['name']}\n"
+        f"💰 Потрачено: {research_data['cost']} монет\n"
+        f"🔓 Разблокированные культуры: {', '.join(research_data['unlocks'])}",
+        reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+    )
+
+async def animal_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    keyboard = []
+    for animal_id, animal_data in ANIMALS.items():
+        keyboard.append([
+            InlineKeyboardButton(
+                f"{animal_data['name']} - {animal_data['cost']}💰 ({animal_data['description']})",
+                callback_data=f"buy_animal_{animal_id}"
+            )
+        ])
+
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data='location_city')])
+
+    await query.edit_message_text(
+        "🐔 Магазин животных:\n\n"
+        "Купите животных для бонусов на ферме:\n\n"
+        "🐔 Курица - +10% скорость роста\n"
+        "🐄 Корова - +20% урожай\n"
+        "🐖 Свинья - +15% деньги\n"
+        "🐑 Овца - +25% опыт\n"
+        "🐎 Лошадь - +5% ко всем\n\n"
+        "Выберите животное для покупки:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def buy_animal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    animal_id = query.data.replace('buy_animal_', '')
+    user_id = str(query.from_user.id)
+
+    user_data = load_user_data()
+    user = user_data[user_id]
+
+    if animal_id not in ANIMALS:
+        await query.edit_message_text("❌ Недействительное животное!", reply_markup=InlineKeyboardMarkup(get_city_keyboard()))
+        return
+
+    if animal_id in user.get('animals', {}):
+        await query.edit_message_text("❌ У вас уже есть это животное!", reply_markup=InlineKeyboardMarkup(get_city_keyboard()))
+        return
+
+    animal_data = ANIMALS[animal_id]
+
+    if user['money'] < animal_data['cost']:
+        await query.edit_message_text(
+            f"❌ Недостаточно денег для покупки {animal_data['name']}!",
+            reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+        )
+        return
+
+    user['money'] -= animal_data['cost']
+    user.setdefault('animals', {})[animal_id] = time.time()
+    save_user_data(user_data)
+
+    await query.edit_message_text(
+        f"✅ Куплено животное: {animal_data['name']}\n"
+        f"💰 Потрачено: {animal_data['cost']} монет\n"
+        f"🎁 Бонус: {animal_data['description']}",
+        reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+    )
+
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
@@ -1244,7 +2190,15 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'status': show_status,
         'help': show_help,
         'roulette': roulette,
-        'blackjack': blackjack
+        'blackjack': blackjack,
+        'my_profile': my_profile,
+        'my_lab': my_lab,
+        'my_farm': my_farm,
+        'trip': trip,
+        'friends': friends,
+        'quests': quests,
+        'research': research,
+        'dealers': dealers
     }
 
     if data.startswith('plant_') and data != 'plant_menu':
@@ -1281,6 +2235,33 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await bj_hit(update, context)
         elif data == 'bj_stand':
             await bj_stand(update, context)
+    elif data == 'equipment_shop':
+        await equipment_shop(update, context)
+    elif data == 'housing_shop':
+        await housing_shop(update, context)
+    elif data == 'business_shop':
+        await business_shop(update, context)
+    elif data.startswith('buy_building_'):
+        await buy_building(update, context)
+    elif data.startswith('buy_business_'):
+        await buy_business(update, context)
+    elif data == 'collect_business_income':
+        await collect_business_income(update, context)
+    elif data.startswith('research_'):
+        await buy_research(update, context)
+    elif data.startswith('dealer_'):
+        await dealer_sell(update, context)
+    elif data.startswith('location_'):
+        if data == 'location_downtown':
+            await location_downtown(update, context)
+        elif data == 'location_suburbs':
+            await location_suburbs(update, context)
+        elif data == 'location_industrial':
+            await location_industrial(update, context)
+        elif data == 'location_university':
+            await location_university(update, context)
+        elif data == 'location_slums':
+            await location_slums(update, context)
     elif data in handlers:
         await handlers[data](update, context)
 
@@ -1307,7 +2288,22 @@ async def add_coins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== ЗАПУСК БОТА ==========
 def main():
+    # Настройка логирования
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler('bot.log', encoding='utf-8')
+        ]
+    )
+
+    logger = logging.getLogger(__name__)
+
     try:
+        logger.info("Бот запущен")
+        logger.info("Ожидание сообщений")
+
         application = Application.builder().token(BOT_TOKEN).build()
 
         # Команды
@@ -1321,6 +2317,7 @@ def main():
         print("🤖 Бот запущен! Нажмите Ctrl+C для остановки.")
         application.run_polling()
     except Exception as e:
+        logger.error(f"Ошибка запуска бота: {e}")
         print(f"Ошибка запуска бота: {e}")
         print("Проверьте токен в config.py или переменную окружения TELEGRAM_BOT_TOKEN")
 
