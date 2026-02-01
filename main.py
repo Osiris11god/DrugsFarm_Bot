@@ -498,15 +498,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     username = update.effective_user.username or update.effective_user.first_name
 
+    logging.info(f"Команда /start от пользователя {username} (ID: {user_id})")
+
     user_data = load_user_data()
     if user_id not in user_data:
         user_data[user_id] = {
             'username': username,
-            'money': 100,
+            'money': 1000,
             'experience': 0,
             'level': 1,
             'plants': {},
-            'inventory': {'💧 Вода': 3, '🌱 marijuana': 1},  # Добавляем семена для теста
+            'inventory': {'💧 Вода': 3, '🌱 marijuana': 1, '🏡 Grow Box': 1},  # Добавляем семена и Grow Box для теста
             'last_watered': {},
             'building': 'cardboard_box',  # Живет в коробке возле помойки
             'businesses': {},  # Купленные бизнесы с временем последнего сбора
@@ -514,6 +516,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'created_at': datetime.now().isoformat()
         }
         save_user_data(user_data)
+        logging.info(f"Зарегистрирован новый пользователь: {username} (ID: {user_id})")
 
     user = user_data[user_id]
     money = user['money']
@@ -529,8 +532,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Используйте кнопки ниже для управления лабораторией:",
             reply_markup=reply_markup
         )
+        logging.info(f"Отправлено главное меню пользователю {username} (ID: {user_id})")
     except Exception as e:
-        print(f"Ошибка отправки сообщения пользователю {user_id}: {e}")
+        logging.error(f"Ошибка отправки сообщения пользователю {user_id}: {e}")
         # Пользователь заблокировал бота или произошла другая ошибка
 
 async def plant_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -576,12 +580,16 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     crop_name = query.data.replace('plant_', '')
     user_id = str(query.from_user.id)
+    username = query.from_user.username or query.from_user.first_name
+
+    logging.info(f"Пользователь {username} (ID: {user_id}) пытается посадить {crop_name}")
 
     user_data = load_user_data()
     user = user_data[user_id]
 
     seed_name = f"🌱 {crop_name}"
     if seed_name not in user['inventory'] or user['inventory'][seed_name] <= 0:
+        logging.warning(f"Пользователь {username} (ID: {user_id}) не имеет семян {crop_name}")
         await query.edit_message_text(
             f"❌ У вас нет семян {crop_name} для посадки",
             reply_markup=InlineKeyboardMarkup(get_main_keyboard())
@@ -590,6 +598,7 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Проверяем наличие Grow Box
     if '🏡 Grow Box' not in user['inventory'] or user['inventory']['🏡 Grow Box'] <= 0:
+        logging.warning(f"Пользователь {username} (ID: {user_id}) не имеет Grow Box")
         await query.edit_message_text(
             f"❌ У вас нет Grow Box для посадки растений!\nКупите в магазине оборудования.",
             reply_markup=InlineKeyboardMarkup(get_main_keyboard())
@@ -601,6 +610,7 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     building_capacity = BUILDINGS[current_building]['capacity']
     current_plants = len(user['plants'])
     if current_plants >= building_capacity:
+        logging.warning(f"Пользователь {username} (ID: {user_id}) превысил лимит растений: {current_plants}/{building_capacity}")
         await query.edit_message_text(
             f"❌ {BUILDINGS[current_building]['name']} полон! Максимум {building_capacity} растений.\nСоберите урожай, чтобы освободить место.",
             reply_markup=InlineKeyboardMarkup(get_main_keyboard())
@@ -615,6 +625,7 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
             missing_equipment.append(equipment)
 
     if missing_equipment:
+        logging.warning(f"Пользователь {username} (ID: {user_id}) не имеет необходимого оборудования: {missing_equipment}")
         await query.edit_message_text(
             f"❌ Недостаточно оборудования для посадки {crop_name}!\n"
             f"Необходимо: {', '.join(missing_equipment)}\n"
@@ -652,11 +663,14 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user['inventory'][seed_name] == 0:
         del user['inventory'][seed_name]
 
+    logging.info(f"Пользователь {username} (ID: {user_id}) успешно посадил {crop_name}, время роста: {int(effective_growth_time)} сек")
+
     # Check for risk events
     risk_event = check_risk_event(user, 'plant')
     if risk_event:
         penalty_messages = apply_risk_penalty(user, risk_event)
         risk_message = f"\n\n⚠️ Рисковое событие: {risk_event['name']}\n{chr(10).join(penalty_messages)}"
+        logging.warning(f"Рисковое событие для пользователя {username} (ID: {user_id}): {risk_event['name']}")
     else:
         risk_message = ""
 
@@ -2167,103 +2181,130 @@ async def buy_animal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    data = query.data
+    try:
+        query = update.callback_query
+        await query.answer()
 
-    handlers = {
-        'main_menu': main_menu,
-        'location_farm': location_farm,
-        'location_city': location_city,
-        'location_casino': location_casino,
-        'plant_menu': plant_menu,
-        'inspect_plants': inspect_plants,
-        'water_all': water_plants,
-        'fertilize_plants': fertilize_plants,
-        'harvest_all': harvest_all,
-        'daily_reward': daily_reward,
-        'achievements': show_achievements,
-        'mini_games': mini_games,
-        'seed_shop': seed_shop,
-        'market': market,
-        'shop': show_shop,
-        'inventory': show_inventory,
-        'status': show_status,
-        'help': show_help,
-        'roulette': roulette,
-        'blackjack': blackjack,
-        'my_profile': my_profile,
-        'my_lab': my_lab,
-        'my_farm': my_farm,
-        'trip': trip,
-        'friends': friends,
-        'quests': quests,
-        'research': research,
-        'dealers': dealers
-    }
+        data = query.data
+        user_id = str(query.from_user.id)
+        username = query.from_user.username or query.from_user.first_name
 
-    if data.startswith('plant_') and data != 'plant_menu':
-        await plant_crop(update, context)
-    elif data.startswith('buy_seed_'):
-        await buy_seed(update, context)
-    elif data.startswith('buy_'):
-        await buy_item(update, context)
-    elif data.startswith('sell_'):
-        await sell_harvest(update, context)
-    elif data.startswith('game_'):
-        if data == 'game_guess_number':
-            await game_guess_number(update, context)
-        elif data == 'game_coin_flip':
-            await game_coin_flip(update, context)
-    elif data.startswith('guess_'):
-        await handle_guess(update, context)
-    elif data.startswith('coin_'):
-        await handle_coin_flip(update, context)
-    elif data.startswith('roulette_'):
-        context.user_data['roulette_bet'] = data.replace('roulette_', '')
-        await query.edit_message_text(
-            f"🎰 Ставка принята: {data.replace('roulette_', '').title()}\n\n"
-            f"🎰 Нажмите 'Крутить!' для запуска рулетки",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🎰 Крутить!", callback_data='spin_roulette')],
-                [InlineKeyboardButton("⬅️ Назад", callback_data='location_casino')]
-            ])
-        )
-    elif data == 'spin_roulette':
-        await spin_roulette(update, context)
-    elif data.startswith('bj_'):
-        if data == 'bj_hit':
-            await bj_hit(update, context)
-        elif data == 'bj_stand':
-            await bj_stand(update, context)
-    elif data == 'equipment_shop':
-        await equipment_shop(update, context)
-    elif data == 'housing_shop':
-        await housing_shop(update, context)
-    elif data == 'business_shop':
-        await business_shop(update, context)
-    elif data.startswith('buy_building_'):
-        await buy_building(update, context)
-    elif data.startswith('buy_business_'):
-        await buy_business(update, context)
-    elif data == 'collect_business_income':
-        await collect_business_income(update, context)
-    elif data.startswith('research_'):
-        await buy_research(update, context)
-    elif data.startswith('dealer_'):
-        await dealer_sell(update, context)
-    elif data.startswith('location_'):
-        if data == 'location_downtown':
-            await location_downtown(update, context)
-        elif data == 'location_suburbs':
-            await location_suburbs(update, context)
-        elif data == 'location_industrial':
-            await location_industrial(update, context)
-        elif data == 'location_university':
-            await location_university(update, context)
-        elif data == 'location_slums':
-            await location_slums(update, context)
-    elif data in handlers:
-        await handlers[data](update, context)
+        logging.info(f"Кнопка нажата пользователем {username} (ID: {user_id}): {data}")
+
+        user_data = load_user_data()
+        if user_id not in user_data:
+            await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
+            return
+
+        handlers = {
+            'main_menu': main_menu,
+            'location_farm': location_farm,
+            'location_city': location_city,
+            'location_casino': location_casino,
+            'plant_menu': plant_menu,
+            'inspect_plants': inspect_plants,
+            'water_all': water_plants,
+            'fertilize_plants': fertilize_plants,
+            'harvest_all': harvest_all,
+            'daily_reward': daily_reward,
+            'achievements': show_achievements,
+            'mini_games': mini_games,
+            'seed_shop': seed_shop,
+            'market': market,
+            'shop': show_shop,
+            'inventory': show_inventory,
+            'status': show_status,
+            'help': show_help,
+            'roulette': roulette,
+            'blackjack': blackjack,
+            'my_profile': my_profile,
+            'my_lab': my_lab,
+            'my_farm': my_farm,
+            'trip': trip,
+            'friends': friends,
+            'quests': quests,
+            'research': research,
+            'dealers': dealers
+        }
+
+        if data.startswith('plant_') and data != 'plant_menu':
+            await plant_crop(update, context)
+        elif data.startswith('buy_seed_'):
+            await buy_seed(update, context)
+        elif data.startswith('buy_'):
+            await buy_item(update, context)
+        elif data.startswith('sell_'):
+            await sell_harvest(update, context)
+        elif data.startswith('game_'):
+            if data == 'game_guess_number':
+                await game_guess_number(update, context)
+            elif data == 'game_coin_flip':
+                await game_coin_flip(update, context)
+        elif data.startswith('guess_'):
+            await handle_guess(update, context)
+        elif data.startswith('coin_'):
+            await handle_coin_flip(update, context)
+        elif data.startswith('roulette_'):
+            context.user_data['roulette_bet'] = data.replace('roulette_', '')
+            await query.edit_message_text(
+                f"🎰 Ставка принята: {data.replace('roulette_', '').title()}\n\n"
+                f"🎰 Нажмите 'Крутить!' для запуска рулетки",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎰 Крутить!", callback_data='spin_roulette')],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data='location_casino')]
+                ])
+            )
+        elif data == 'spin_roulette':
+            await spin_roulette(update, context)
+        elif data.startswith('bj_'):
+            if data == 'bj_hit':
+                await bj_hit(update, context)
+            elif data == 'bj_stand':
+                await bj_stand(update, context)
+        elif data == 'equipment_shop':
+            await equipment_shop(update, context)
+        elif data == 'housing_shop':
+            await housing_shop(update, context)
+        elif data == 'business_shop':
+            await business_shop(update, context)
+        elif data.startswith('buy_building_'):
+            await buy_building(update, context)
+        elif data.startswith('buy_business_'):
+            await buy_business(update, context)
+        elif data == 'collect_business_income':
+            await collect_business_income(update, context)
+        elif data.startswith('research_'):
+            await buy_research(update, context)
+        elif data.startswith('dealer_'):
+            await dealer_sell(update, context)
+        elif data.startswith('location_'):
+            if data == 'location_downtown':
+                await location_downtown(update, context)
+            elif data == 'location_suburbs':
+                await location_suburbs(update, context)
+            elif data == 'location_industrial':
+                await location_industrial(update, context)
+            elif data == 'location_university':
+                await location_university(update, context)
+            elif data == 'location_slums':
+                await location_slums(update, context)
+        elif data in handlers:
+            await handlers[data](update, context)
+        else:
+            logging.warning(f"Неизвестная кнопка: {data}")
+            await query.edit_message_text(
+                "❌ Неизвестная команда. Возвращаемся в главное меню.",
+                reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            )
+    except Exception as e:
+        logging.error(f"Ошибка в button_callback: {e}")
+        try:
+            await update.callback_query.edit_message_text(
+                "❌ Произошла ошибка. Попробуйте снова.",
+                reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            )
+        except:
+            pass
 
 # ========== ОСНОВНЫЕ КОМАНДЫ (для совместимости) ==========
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2304,17 +2345,16 @@ def main():
         logger.info("Бот запущен")
         logger.info("Ожидание сообщений")
 
+        # Запуск бота с реальным токеном
         application = Application.builder().token(BOT_TOKEN).build()
-
-        # Команды
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("help", help_command))
         application.add_handler(CommandHandler("addcoins", add_coins))
-
-        # Обработчики кнопок
         application.add_handler(CallbackQueryHandler(button_callback))
 
-        print("🤖 Бот запущен! Нажмите Ctrl+C для остановки.")
+        print("🤖 Бот успешно инициализирован и запущен!")
+        print("Бот готов принимать сообщения...")
+
         application.run_polling()
     except Exception as e:
         logger.error(f"Ошибка запуска бота: {e}")
