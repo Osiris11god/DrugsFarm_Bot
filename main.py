@@ -884,11 +884,23 @@ async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    item_name = query.data.replace('buy_', '')
+    data = query.data.replace('buy_', '')
+    # Remove suffix if present (e.g., _from_shop, _from_equipment)
+    if '_from_' in data:
+        item_name = data.split('_from_')[0]
+    else:
+        item_name = data
     user_id = str(query.from_user.id)
 
     user_data = load_user_data()
     user = user_data[user_id]
+
+    if item_name not in SHOP_ITEMS:
+        await query.edit_message_text(
+            f"❌ Товар {item_name} не найден в магазине",
+            reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+        )
+        return
 
     if user['money'] < SHOP_ITEMS[item_name]['price']:
         await query.edit_message_text(
@@ -2350,6 +2362,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await location_university(update, context)
             elif data == 'location_slums':
                 await location_slums(update, context)
+            elif data == 'location_city':
+                await location_city(update, context)
+            elif data == 'location_farm':
+                await location_farm(update, context)
+            elif data == 'location_casino':
+                await location_casino(update, context)
         elif data in handlers:
             await handlers[data](update, context)
         else:
