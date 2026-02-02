@@ -16,57 +16,20 @@ except ImportError as e:
 DATA_SCHEMA_VERSION = 2
 
 CROP_DATA = {
-    # Schedule I наркотики - самые опасные и запрещенные
-    'heroin': {'name': 'Героин', 'growth_time': 60, 'price': 45, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Белая смерть 💀 - самый опасный синтетический наркотик', 'production': 'lab'},
-    'meth': {'name': 'Метамфетамин', 'growth_time': 90, 'price': 30, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Кристалл мет ⚗️ - адреналин в крови', 'production': 'lab'},
-    'cocaine': {'name': 'Кокаин', 'growth_time': 45, 'price': 25, 'emoji': '💎', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Белый порошок 👃 - энергия и власть', 'production': 'lab'},
-    'lsd': {'name': 'ЛСД', 'growth_time': 50, 'price': 50, 'emoji': '🌈', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Кислота 🌈 - путешествие в другой мир', 'production': 'lab'},
-    'ecstasy': {'name': 'Экстази', 'growth_time': 80, 'price': 50, 'emoji': '💊', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Танцующие таблетки 💃 - любовь и энергия', 'production': 'lab'},
-    'pcp': {'name': 'PCP', 'growth_time': 120, 'price': 380, 'emoji': '👹', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Дьявольский порошок 👹 - потеря контроля', 'production': 'lab'},
-    'angel_dust': {'name': 'Ангельская пыль', 'growth_time': 100, 'price': 340, 'emoji': '👼', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Ангельский порошок 👼 - иллюзии и безумие', 'production': 'lab'},
-    'bath_salts': {'name': 'Батх солтс', 'growth_time': 85, 'price': 310, 'emoji': '🛁', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Ванная соль 🛁 - химическое безумие', 'production': 'lab'},
-    'flakka': {'name': 'Флакка', 'growth_time': 95, 'price': 330, 'emoji': '🔥', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Огненный зомби 🔥 - суперсила и паранойя', 'production': 'lab'},
-
-    # Другие наркотики
-    'marijuana': {'name': 'Марихуана', 'growth_time': 10, 'price': 10, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box'], 'description': 'Трава 🌿 - расслабление и креатив'},
-    'opium': {'name': 'Опиум', 'growth_time': 30, 'price': 15, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Маковый сок 🌺 - древний наркотик'},
-    'mushrooms': {'name': 'Псилоцибиновые грибы', 'growth_time': 50, 'price': 35, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик'], 'description': 'Магические грибы 🍄 - видения и мудрость'},
-    'hash': {'name': 'Хэш', 'growth_time': 70, 'price': 20, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа'], 'description': 'Прессованная трава 🌿 - крепкий эффект'},
-    'peyote': {'name': 'Пейот', 'growth_time': 35, 'price': 40, 'emoji': '🌵', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик'], 'description': 'Пустынный кактус 🌵 - духовное путешествие'},
-    'ketamine': {'name': 'Кетамин', 'growth_time': 70, 'price': 65, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Специальное K 💉 - диссоциативный трип', 'production': 'lab'},
-    'dmt': {'name': 'ДМТ', 'growth_time': 80, 'price': 75, 'emoji': '🚀', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Духовная молния 🚀 - прорыв в реальность', 'production': 'lab'},
-    'mdma': {'name': 'МДМА', 'growth_time': 60, 'price': 60, 'emoji': '💖', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Молекула любви 💖 - эмпатия и энергия', 'production': 'lab'},
-    'salvia': {'name': 'Сальвия', 'growth_time': 45, 'price': 30, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор'], 'description': 'Шалфей предсказателей 🌿 - короткий интенсивный трип'},
-    'ayahuasca': {'name': 'Аяуаска', 'growth_time': 80, 'price': 85, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик', '🔬 Тестер pH'], 'description': 'Лiana духов 🌿 - глубокое очищение'},
-    'mescaline': {'name': 'Мескалин', 'growth_time': 55, 'price': 90, 'emoji': '🌵', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌡️ Термометр'], 'description': 'Пейотный кактус 🌵 - видения пустыни'},
-    'ibogaine': {'name': 'Ибогаин', 'growth_time': 65, 'price': 95, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Африканский корень 🌿 - лечение зависимости'},
-    'morning_glory': {'name': 'Утреннее сияние', 'growth_time': 35, 'price': 25, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка'], 'description': 'Цветы LSD 🌺 - естественная кислота'},
-    'kratom': {'name': 'Кратон', 'growth_time': 40, 'price': 20, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌿 Вентилятор'], 'description': 'Таиландский лист 🌿 - стимулятор и успокоитель'},
-    'san_pedro': {'name': 'Сан-Педро', 'growth_time': 90, 'price': 115, 'emoji': '🌵', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Шаманский кактус 🌵 - видения и исцеление'},
-    'amanita': {'name': 'Мухомор', 'growth_time': 70, 'price': 125, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор'], 'description': 'Красный с белыми точками 🍄 - ядовитый трип'},
-    'psilocybe': {'name': 'Псилоцибе', 'growth_time': 55, 'price': 135, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Лесные грибы 🍄 - классический психоделик'},
     'cannabis_indica': {'name': 'Индийская конопля', 'growth_time': 45, 'price': 145, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва'], 'description': 'Расслабляющая indica 🌿 - сон и релакс'},
     'cannabis_sativa': {'name': 'Сатива конопля', 'growth_time': 50, 'price': 155, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌿 Вентилятор'], 'description': 'Энергичная sativa 🌿 - креатив и энергия'},
-    'tobacco': {'name': 'Табак', 'growth_time': 35, 'price': 15, 'emoji': '🚬', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Никотин 🚬 - легальный наркотик'},
-    'coca': {'name': 'Кока', 'growth_time': 65, 'price': 175, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Листья коки 🌿 - основа кокаина'},
-    'poppy': {'name': 'Мак', 'growth_time': 75, 'price': 185, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка'], 'description': 'Опийный мак 🌺 - источник героина'},
-    'belladonna': {'name': 'Белладонна', 'growth_time': 85, 'price': 195, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌡️ Термометр'], 'description': 'Красавка 🌿 - ядовитая красота'},
-    'datura': {'name': 'Датура', 'growth_time': 95, 'price': 205, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌿 Вентилятор'], 'description': 'Дьявольская трава 🌺 - делирий и галлюцинации'},
-    'henbane': {'name': 'Белена', 'growth_time': 80, 'price': 215, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🔬 Тестер pH'], 'description': 'Ведьмина трава 🌿 - ведьмовской яд'},
-    'wormwood': {'name': 'Полынь', 'growth_time': 60, 'price': 25, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Абсент 🌿 - горький алкогольный трип'},
-    'valerian': {'name': 'Валериана', 'growth_time': 55, 'price': 35, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка'], 'description': 'Кошачья трава 🌿 - успокоительное'},
-    'mugwort': {'name': 'Полынь обыкновенная', 'growth_time': 50, 'price': 45, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Трава снов 🌿 - ясновидение'},
-    'jimsonweed': {'name': 'Дурман', 'growth_time': 70, 'price': 255, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор'], 'description': 'Дьявольский дурман 🌺 - мощный делирий'},
-    'ephedra': {'name': 'Эфедра', 'growth_time': 45, 'price': 265, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌡️ Термометр'], 'description': 'Стимулятор эфедрин 🌿 - естественный амфетамин'},
-    'kava': {'name': 'Кава', 'growth_time': 85, 'price': 275, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка'], 'description': 'Океанийский корень 🌿 - расслабление без похмелья'},
-    'betel': {'name': 'Бетель', 'growth_time': 60, 'price': 285, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Азиатская жвачка 🌿 - мягкий стимулятор'},
-    'crack': {'name': 'Крэк', 'growth_time': 65, 'price': 320, 'emoji': '💎', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Камень крэк 💎 - мгновенная зависимость', 'production': 'lab'}
+    'opium': {'name': 'Опиум', 'growth_time': 30, 'price': 15, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Маковый сок 🌺 - древний наркотик'},
+    'ecstasy': {'name': 'Экстази', 'growth_time': 80, 'price': 50, 'emoji': '💊', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Танцующие таблетки 💃 - любовь и энергия', 'production': 'lab'},
+    'mephedrone': {'name': 'Мефедрон', 'growth_time': 80, 'price': 50, 'emoji': '💊', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Меф 💊 - синтетический стимулятор', 'production': 'lab'},
+    'meth': {'name': 'Метамфетамин', 'growth_time': 90, 'price': 30, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Кристалл мет ⚗️ - адреналин в крови', 'production': 'lab'},
+    'amphetamine': {'name': 'Амфетамин', 'growth_time': 90, 'price': 30, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Амфетамин 💉 - мощный стимулятор', 'production': 'lab'},
+    'cocaine': {'name': 'Кокаин', 'growth_time': 45, 'price': 25, 'emoji': '💎', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Белый порошок 👃 - энергия и власть', 'production': 'lab'}
 }
 
-DANGEROUS_CROPS = {'heroin', 'meth', 'cocaine', 'lsd', 'ecstasy', 'pcp', 'angel_dust', 'bath_salts', 'flakka'}
+DANGEROUS_CROPS = {'meth', 'cocaine', 'ecstasy'}
 
 # Наркотики, производимые химическим путём (в лаборатории), а не через выращивание
-LAB_DRUGS = {'heroin', 'meth', 'cocaine', 'lsd', 'ecstasy', 'pcp', 'angel_dust', 'bath_salts', 'flakka', 'ketamine', 'dmt', 'mdma', 'crack'}
+LAB_DRUGS = {'ecstasy', 'mephedrone', 'meth', 'amphetamine', 'cocaine'}
 
 # Рецепты химического синтеза для синтетических наркотиков
 CHEM_RECIPES = {
@@ -156,12 +119,12 @@ BUSINESSES = {
     'hotel': {'name': 'Отель', 'cost': 500000, 'income_per_hour': 750, 'description': 'Отель - 750 монет/час'}
 }
 DEALERS = {
-    'street_dealer': {'name': 'Уличный дилер', 'buy_price_multiplier': 1.5, 'reputation_required': 0, 'description': 'Покупает по 1.5x цене'},
-    'club_owner': {'name': 'Владелец клуба', 'buy_price_multiplier': 1.8, 'reputation_required': 10, 'description': 'Покупает по 1.8x цене'},
-    'pharma_rep': {'name': 'Фармацевт', 'buy_price_multiplier': 2.0, 'reputation_required': 25, 'description': 'Покупает по 2.0x цене'},
-    'cartel_member': {'name': 'Член картеля', 'buy_price_multiplier': 2.2, 'reputation_required': 50, 'description': 'Покупает по 2.2x цене'},
-    'underground_boss': {'name': 'Подпольный босс', 'buy_price_multiplier': 2.5, 'reputation_required': 100, 'description': 'Покупает по 2.5x цене'},
-    'international_smuggler': {'name': 'Международный контрабандист', 'buy_price_multiplier': 3.0, 'reputation_required': 200, 'description': 'Покупает по 3.0x цене'}
+    'street_dealer': {'name': 'Уличный дилер', 'buy_price_multiplier': 2.0, 'reputation_required': 0, 'description': 'Покупает по 2.0x цене'},
+    'club_owner': {'name': 'Владелец клуба', 'buy_price_multiplier': 2.5, 'reputation_required': 10, 'description': 'Покупает по 2.5x цене'},
+    'pharma_rep': {'name': 'Фармацевт', 'buy_price_multiplier': 3.0, 'reputation_required': 25, 'description': 'Покупает по 3.0x цене'},
+    'cartel_member': {'name': 'Член картеля', 'buy_price_multiplier': 3.5, 'reputation_required': 50, 'description': 'Покупает по 3.5x цене'},
+    'underground_boss': {'name': 'Подпольный босс', 'buy_price_multiplier': 4.0, 'reputation_required': 100, 'description': 'Покупает по 4.0x цене'},
+    'international_smuggler': {'name': 'Международный контрабандист', 'buy_price_multiplier': 5.0, 'reputation_required': 200, 'description': 'Покупает по 5.0x цене'}
 }
 QUESTS = {
     'daily_harvest': {'name': 'Ежедневный урожай', 'description': 'Соберите 5 растений сегодня', 'reward': 50, 'type': 'daily', 'target': 5},
@@ -172,11 +135,11 @@ QUESTS = {
 }
 
 LOCATIONS = {
-    'downtown': {'name': 'Центр города', 'risk_level': 3, 'dealer_multiplier': 1.2, 'description': 'Высокий риск, хорошие цены'},
-    'suburbs': {'name': 'Пригород', 'risk_level': 1, 'dealer_multiplier': 1.0, 'description': 'Низкий риск, средние цены'},
-    'industrial': {'name': 'Промзона', 'risk_level': 2, 'dealer_multiplier': 1.1, 'description': 'Средний риск, хорошие цены'},
-    'university': {'name': 'Университет', 'risk_level': 4, 'dealer_multiplier': 1.3, 'description': 'Высокий риск, отличные цены'},
-    'slums': {'name': 'Трущобы', 'risk_level': 5, 'dealer_multiplier': 1.4, 'description': 'Очень высокий риск, максимальные цены'}
+    'downtown': {'name': 'Центр города', 'risk_level': 3, 'dealer_multiplier': 2.0, 'description': 'Высокий риск, хорошие цены'},
+    'suburbs': {'name': 'Пригород', 'risk_level': 1, 'dealer_multiplier': 1.5, 'description': 'Низкий риск, средние цены'},
+    'industrial': {'name': 'Промзона', 'risk_level': 2, 'dealer_multiplier': 1.8, 'description': 'Средний риск, хорошие цены'},
+    'university': {'name': 'Университет', 'risk_level': 4, 'dealer_multiplier': 2.5, 'description': 'Высокий риск, отличные цены'},
+    'slums': {'name': 'Трущобы', 'risk_level': 5, 'dealer_multiplier': 3.0, 'description': 'Очень высокий риск, максимальные цены'}
 }
 
 RESEARCH = {
@@ -196,11 +159,11 @@ RISK_EVENTS = {
 
 # Кладмены — курьеры, которые раскладывают товар и приносят пассивный доход
 COURIERS = {
-    'newbie': {'name': 'Новичок-кладмен', 'cost': 5000, 'income_per_hour': 25, 'risk': 0.15,
+    'newbie': {'name': 'Новичок-кладмен', 'cost': 5000, 'income_per_hour': 50, 'risk': 0.15,
                'description': 'Дешёвый курьер, часто палится, но приносит небольшой доход.'},
-    'pro': {'name': 'Опытный кладмен', 'cost': 20000, 'income_per_hour': 120, 'risk': 0.08,
+    'pro': {'name': 'Опытный кладмен', 'cost': 20000, 'income_per_hour': 240, 'risk': 0.08,
             'description': 'Знает районы, реже попадается, стабильный доход.'},
-    'ghost': {'name': 'Призрак', 'cost': 75000, 'income_per_hour': 400, 'risk': 0.03,
+    'ghost': {'name': 'Призрак', 'cost': 75000, 'income_per_hour': 800, 'risk': 0.03,
               'description': 'Легендарный кладмен, работает чисто, но стоит дорого.'}
 }
 
@@ -262,7 +225,7 @@ def apply_risk_penalty(user, event_data):
 
     elif penalty == 'lose_money':
         lost_money = min(user['money'] // 4, 500)  # Максимум 500 или 25% денег
-        user['money'] -= lost_money
+        user['money'] = max(0, user['money'] - lost_money)  # Защита от отрицательных значений
         penalty_messages.append(f"🕵️‍♂️ Вор украл {lost_money} монет!")
 
     elif penalty == 'lose_plants':
@@ -380,7 +343,7 @@ def get_shop_keyboard(from_menu='city'):
                 callback_data=f"buy_{item_name}_x5_from_shop"
             )
         ])
-    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'location_{from_menu}')])
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data='location_city')])
     return keyboard
 
 def get_equipment_shop_keyboard(from_menu='city'):
@@ -454,6 +417,10 @@ def load_user_data():
                 version = data.get("__schema_version__", 0) if isinstance(data, dict) else 0
                 if version < DATA_SCHEMA_VERSION:
                     return {}
+                # Исправляем отрицательные балансы
+                for user_id, user in data.items():
+                    if isinstance(user, dict) and 'money' in user:
+                        user['money'] = max(0, user['money'])
                 return data
         return {}
     except (json.JSONDecodeError, IOError) as e:
@@ -770,7 +737,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if bet_amount < 10:
                 await update.message.reply_text("❌ Минимальная ставка — 10 монет. Введи число от 10 и выше:")
                 return
-            if bet_amount > user['money']:
+            if bet_amount > user['money'] or user['money'] <= 0:
                 await update.message.reply_text(f"❌ У тебя только {user['money']} монет. Введи меньшую сумму:")
                 return
         except ValueError:
@@ -799,7 +766,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if bet_amount < 10:
                 await update.message.reply_text("❌ Минимальная ставка — 10 монет. Введи число от 10 и выше:")
                 return
-            if bet_amount > user['money']:
+            if bet_amount > user['money'] or user['money'] <= 0:
                 await update.message.reply_text(f"❌ У тебя только {user['money']} монет. Введи меньшую сумму:")
                 return
         except ValueError:
@@ -1865,7 +1832,7 @@ async def sell_harvest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    sell_price = CROP_DATA[crop_id]['price'] * 2
+    sell_price = CROP_DATA[crop_id]['price'] * 4
     quantity = user['inventory'][item_name]
 
     total_earned = sell_price * quantity
@@ -1999,6 +1966,12 @@ async def bj_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = load_user_data()
     user = user_data[user_id]
 
+    if 'blackjack_bet' not in context.user_data:
+        await query.edit_message_text("❌ Ошибка: ставка не установлена", reply_markup=InlineKeyboardMarkup(get_casino_keyboard()))
+        return
+
+    bet_amount = context.user_data['blackjack_bet']
+
     import random
 
     def calculate_score(cards):
@@ -2024,12 +1997,11 @@ async def bj_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     player_score = calculate_score(player_cards)
 
     if player_score > 21:
-        bet_amount = context.user_data.get('blackjack_bet', 10)
         user['money'] -= bet_amount
         save_user_data(user_data)
         await query.edit_message_text(
             f"💥 Перебор! Ваши карты: {', '.join(player_cards)} (очки: {player_score})\n"
-            f"❌ Вы проиграли 10 монет\n💰 Баланс: {user['money']} монет",
+            f"❌ Вы проиграли {bet_amount} монет\n💰 Баланс: {user['money']} монет",
             reply_markup=InlineKeyboardMarkup(get_casino_keyboard())
         )
         return
@@ -2056,6 +2028,12 @@ async def bj_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = load_user_data()
     user = user_data[user_id]
 
+    if 'blackjack_bet' not in context.user_data:
+        await query.edit_message_text("❌ Ошибка: ставка не установлена", reply_markup=InlineKeyboardMarkup(get_casino_keyboard()))
+        return
+
+    bet_amount = context.user_data['blackjack_bet']
+
     import random
 
     def calculate_score(cards):
@@ -2079,7 +2057,6 @@ async def bj_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     player_score = calculate_score(player_cards)
     dealer_score = calculate_score(dealer_cards)
-    bet_amount = context.user_data.get('blackjack_bet', 10)
 
     # Дилер добирает карты до 17
     while dealer_score < 17:
