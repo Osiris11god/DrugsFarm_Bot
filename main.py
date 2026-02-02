@@ -78,6 +78,35 @@ CHEM_RECIPES = {
     for drug_id in LAB_DRUGS
 }
 
+
+def get_crop_id_from_item_name(item_name: str):
+    """
+    Определяет ID культуры (ключ в CROP_DATA) по названию предмета в инвентаре.
+    Формат предмета: '🌿 Имя' или '💊 Имя'.
+    Поддерживает как английские ID, так и локализованные названия.
+    """
+    if not item_name:
+        return None
+
+    # Обрезаем emoji и пробел
+    display_name = item_name[2:].strip()
+    if not display_name:
+        return None
+
+    # 1) Прямое совпадение с ID
+    if display_name in CROP_DATA:
+        return display_name
+    if display_name.lower() in CROP_DATA:
+        return display_name.lower()
+
+    # 2) По локализованному имени (поле 'name')
+    display_lower = display_name.lower()
+    for crop_id, crop in CROP_DATA.items():
+        if crop.get('name', '').lower() == display_lower:
+            return crop_id
+
+    return None
+
 SHOP_ITEMS = {
     '💧 Вода': {'price': 10, 'effect': 'water'},
     '🧪 Удобрение': {'price': 50, 'effect': 'growth_speed', 'speed_boost': 0.5},
@@ -514,12 +543,13 @@ async def dealer_sell(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sold_items = []
 
     for item_name, quantity in harvest_items.items():
-        crop_name = item_name[2:].strip().lower()
-        if crop_name in CROP_DATA:
-            sell_price = CROP_DATA[crop_name]['price'] * dealer_data['buy_price_multiplier']
-            total_earned += sell_price * quantity
-            sold_items.append(f"{item_name} x{quantity}")
-            del user['inventory'][item_name]
+        crop_id = get_crop_id_from_item_name(item_name)
+        if not crop_id:
+            continue
+        sell_price = CROP_DATA[crop_id]['price'] * dealer_data['buy_price_multiplier']
+        total_earned += sell_price * quantity
+        sold_items.append(f"{item_name} x{quantity}")
+        del user['inventory'][item_name]
 
     user['money'] += total_earned
     user['reputation'] = user.get('reputation', 0) + len(sold_items)
@@ -730,6 +760,96 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🏴 Империя «{empire_name}» создана!\n\n"
             f"Теперь ты полноценный босс. Используй кнопки ниже, чтобы строить свою нарко-империю.",
             reply_markup=reply_markup
+        )
+        return
+
+    # Обработка ставки для рулетки
+    if context.user_data.get('awaiting_bet') == 'roulette':
+        try:
+            bet_amount = int(update.message.text.strip())
+            if bet_amount < 10:
+                await update.message.reply_text("❌ Минимальная ставка — 10 монет. Введи число от 10 и выше:")
+                return
+            if bet_amount > user['money']:
+                await update.message.reply_text(f"❌ У тебя только {user['money']} монет. Введи меньшую сумму:")
+                return
+        except ValueError:
+            await update.message.reply_text("❌ Введи число. Например: 50")
+            return
+
+        context.user_data['roulette_bet_amount'] = bet_amount
+        context.user_data.pop('awaiting_bet', None)  # Убираем флаг ожидания
+
+        await update.message.reply_text(
+            f"💰 Ставка принята: {bet_amount} монет\n\n"
+            f"Теперь выбери цвет:",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔴 Красное", callback_data='roulette_red'),
+                 InlineKeyboardButton("⚫ Чёрное", callback_data='roulette_black')],
+                [InlineKeyboardButton("🟢 Зелёное (0)", callback_data='roulette_green')],
+                [InlineKeyboardButton("⬅️ Назад", callback_data='location_casino')]
+            ])
+        )
+        return
+
+    # Обработка ставки для блэкджека
+    if context.user_data.get('awaiting_bet') == 'blackjack':
+        try:
+            bet_amount = int(update.message.text.strip())
+            if bet_amount < 10:
+                await update.message.reply_text("❌ Минимальная ставка — 10 монет. Введи число от 10 и выше:")
+                return
+            if bet_amount > user['money']:
+                await update.message.reply_text(f"❌ У тебя только {user['money']} монет. Введи меньшую сумму:")
+                return
+        except ValueError:
+            await update.message.reply_text("❌ Введи число. Например: 50")
+            return
+
+        context.user_data['blackjack_bet'] = bet_amount
+        context.user_data.pop('awaiting_bet', None)  # Убираем флаг ожидания
+
+        # Простая версия блэкджека
+        import random
+
+        def calculate_score(cards):
+            score = 0
+            aces = 0
+            for card in cards:
+                if card in ['J', 'Q', 'K']:
+                    score += 10
+                elif card == 'A':
+                    aces += 1
+                    score += 11
+                else:
+                    score += int(card)
+            while score > 21 and aces:
+                score -= 10
+                aces -= 1
+            return score
+
+        player_cards = [str(random.randint(1, 10)) for _ in range(2)]
+        dealer_cards = [str(random.randint(1, 10)) for _ in range(2)]
+
+        player_score = calculate_score(player_cards)
+        dealer_score = calculate_score(dealer_cards)
+
+        context.user_data['blackjack_player'] = player_cards
+        context.user_data['blackjack_dealer'] = dealer_cards
+
+        keyboard = [
+            [InlineKeyboardButton("🃏 Ещё карту", callback_data='bj_hit'),
+             InlineKeyboardButton("⏹️ Хватит", callback_data='bj_stand')],
+            [InlineKeyboardButton("⬅️ Назад", callback_data='location_casino')]
+        ]
+
+        await update.message.reply_text(
+            f"🃏 Блэкджек!\n\n"
+            f"💰 Ставка: {bet_amount} монет\n\n"
+            f"Ваши карты: {', '.join(player_cards)} (очки: {player_score})\n"
+            f"Карты дилера: {dealer_cards[0]}, ?\n\n"
+            f"Выберите действие:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
 
@@ -1694,16 +1814,17 @@ async def market(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if harvest_items:
         keyboard = []
         for item_name, quantity in harvest_items.items():
-            crop_name = item_name[2:].strip().lower()  # Убираем эмодзи и приводим к нижнему регистру
-            if crop_name in CROP_DATA:
-                sell_price = CROP_DATA[crop_name]['price'] * 2
-                market_text += f"{item_name}: {quantity} шт. - {sell_price}💰 за шт.\n"
-                keyboard.append([
-                    InlineKeyboardButton(
-                        f"💰 Продать {item_name} ({sell_price}💰)",
-                        callback_data=f"sell_{item_name.replace(' ', '_')}"
-                    )
-                ])
+            crop_id = get_crop_id_from_item_name(item_name)
+            if not crop_id:
+                continue
+            sell_price = CROP_DATA[crop_id]['price'] * 2
+            market_text += f"{item_name}: {quantity} шт. - {sell_price}💰 за шт.\n"
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"💰 Продать {item_name} ({sell_price}💰)",
+                    callback_data=f"sell_{item_name.replace(' ', '_')}"
+                )
+            ])
         keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data='location_city')])
 
         await query.edit_message_text(
@@ -1736,8 +1857,15 @@ async def sell_harvest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    crop_name = item_name[2:].strip().lower()  # Убираем эмодзи и приводим к нижнему регистру
-    sell_price = CROP_DATA[crop_name]['price'] * 2
+    crop_id = get_crop_id_from_item_name(item_name)
+    if not crop_id:
+        await query.edit_message_text(
+            "❌ Не удалось определить тип товара, попробуйте обновить рынок.",
+            reply_markup=InlineKeyboardMarkup(get_city_keyboard())
+        )
+        return
+
+    sell_price = CROP_DATA[crop_id]['price'] * 2
     quantity = user['inventory'][item_name]
 
     total_earned = sell_price * quantity
@@ -1760,28 +1888,20 @@ async def roulette(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = load_user_data()
     user = user_data[user_id]
 
-    if user['money'] < 20:
+    if user['money'] < 10:
         await query.edit_message_text(
-            "❌ Нужно минимум 20 монет для игры в рулетку!",
+            "❌ Нужно минимум 10 монет для игры в рулетку!",
             reply_markup=InlineKeyboardMarkup(get_casino_keyboard())
         )
         return
 
-    # Запоминаем, что игрок сейчас в рулетке и запрашиваем размер ставки
-    context.user_data['roulette_stage'] = 'await_bet'
-
-    keyboard = [
-        [InlineKeyboardButton("20", callback_data='roulette_bet_20'),
-         InlineKeyboardButton("50", callback_data='roulette_bet_50'),
-         InlineKeyboardButton("100", callback_data='roulette_bet_100')],
-        [InlineKeyboardButton("⬅️ Назад", callback_data='location_casino')]
-    ]
+    # Запоминаем, что игрок ждет ставку для рулетки
+    context.user_data['awaiting_bet'] = 'roulette'
 
     await query.edit_message_text(
         "🎰 Рулетка!\n\n"
-        "💰 Введи свою ставку числом в следующем сообщении (минимум 20 монет)\n"
-        "Или выбери одну из готовых сумм ниже:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        "💰 Введи свою ставку числом в следующем сообщении (минимум 10 монет):",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data='location_casino')]])
     )
 
 async def spin_roulette(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1862,58 +1982,13 @@ async def blackjack(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Простая версия блэкджека
-    import random
-
-    def calculate_score(cards):
-        score = 0
-        aces = 0
-        for card in cards:
-            if card in ['J', 'Q', 'K']:
-                score += 10
-            elif card == 'A':
-                aces += 1
-                score += 11
-            else:
-                score += int(card)
-        while score > 21 and aces:
-            score -= 10
-            aces -= 1
-        return score
-
-    bet_amount = context.user_data.get('blackjack_bet', 10)
-    if bet_amount < 10:
-        bet_amount = 10
-    if user['money'] < bet_amount:
-        await query.edit_message_text(
-            "❌ Недостаточно денег для выбранной ставки в блэкджеке!",
-            reply_markup=InlineKeyboardMarkup(get_casino_keyboard())
-        )
-        return
-
-    player_cards = [str(random.randint(1, 10)) for _ in range(2)]
-    dealer_cards = [str(random.randint(1, 10)) for _ in range(2)]
-
-    player_score = calculate_score(player_cards)
-    dealer_score = calculate_score(dealer_cards)
-
-    context.user_data['blackjack_player'] = player_cards
-    context.user_data['blackjack_dealer'] = dealer_cards
-    context.user_data['blackjack_bet'] = bet_amount
-
-    keyboard = [
-        [InlineKeyboardButton("🃏 Ещё карту", callback_data='bj_hit'),
-         InlineKeyboardButton("⏹️ Хватит", callback_data='bj_stand')],
-        [InlineKeyboardButton("⬅️ Назад", callback_data='location_casino')]
-    ]
+    # Запоминаем, что игрок ждет ставку для блэкджека
+    context.user_data['awaiting_bet'] = 'blackjack'
 
     await query.edit_message_text(
-        f"🃏 Блэкджек!\n\n"
-        f"💰 Ставка: {bet_amount} монет\n\n"
-        f"Ваши карты: {', '.join(player_cards)} (очки: {player_score})\n"
-        f"Карты дилера: {dealer_cards[0]}, ?\n\n"
-        f"Выберите действие:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        "🃏 Блэкджек!\n\n"
+        "💰 Введи свою ставку числом в следующем сообщении (минимум 10 монет):",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data='location_casino')]])
     )
 
 async def bj_hit(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2760,32 +2835,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await handle_guess(update, context)
         elif data.startswith('coin_'):
             await handle_coin_flip(update, context)
-        elif data.startswith('roulette_bet_'):
-            # Быстрый выбор суммы ставки
-            try:
-                bet_amount = int(data.replace('roulette_bet_', ''))
-            except ValueError:
-                bet_amount = 20
-            context.user_data['roulette_bet_amount'] = max(20, bet_amount)
-            await query.edit_message_text(
-                f"💰 Ставка установлена: {context.user_data['roulette_bet_amount']} монет\n\n"
-                f"Теперь выберите цвет:",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔴 Красное", callback_data='roulette_red'),
-                     InlineKeyboardButton("⚫ Чёрное", callback_data='roulette_black')],
-                    [InlineKeyboardButton("🟢 Зелёное (0)", callback_data='roulette_green')],
-                    [InlineKeyboardButton("🎰 Крутить!", callback_data='spin_roulette')],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data='location_casino')]
-                ])
-            )
         elif data.startswith('roulette_'):
             # Выбор цвета вручную
             context.user_data['roulette_bet'] = data.replace('roulette_', '')
-            if 'roulette_bet_amount' not in context.user_data or context.user_data['roulette_bet_amount'] < 20:
-                context.user_data['roulette_bet_amount'] = 20
+            bet_amount = context.user_data.get('roulette_bet_amount', 10)
             await query.edit_message_text(
                 f"🎰 Цвет выбран: {data.replace('roulette_', '').title()}\n"
-                f"💰 Текущая ставка: {context.user_data['roulette_bet_amount']} монет\n\n"
+                f"💰 Текущая ставка: {bet_amount} монет\n\n"
                 f"Нажмите 'Крутить!' для запуска рулетки",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("🎰 Крутить!", callback_data='spin_roulette')],
