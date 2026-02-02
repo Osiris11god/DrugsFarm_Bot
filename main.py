@@ -13,49 +13,54 @@ except ImportError as e:
     print("Убедитесь, что config.py находится в той же папке, что и main.py")
     exit(1)
 CROP_DATA = {
-    'marijuana': {'name': 'Marijuana', 'growth_time': 10, 'price': 10, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box']},
-    'cocaine': {'name': 'Cocaine', 'growth_time': 20, 'price': 25, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа']},
-    'opium': {'name': 'Opium', 'growth_time': 30, 'price': 15, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва']},
-    'meth': {'name': 'Meth', 'growth_time': 40, 'price': 30, 'emoji': '💉', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва']},
-    'mushrooms': {'name': 'Mushrooms', 'growth_time': 50, 'price': 35, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик']},
-    'heroin': {'name': 'Heroin', 'growth_time': 15, 'price': 45, 'emoji': '💉', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌿 Вентилятор']},
-    'lsd': {'name': 'LSD', 'growth_time': 25, 'price': 50, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🧴 pH Балансировщик']},
-    'ecstasy': {'name': 'Ecstasy', 'growth_time': 60, 'price': 50, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🌿 Вентилятор']},
-    'hash': {'name': 'Hash', 'growth_time': 70, 'price': 20, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа']},
-    'peyote': {'name': 'Peyote', 'growth_time': 35, 'price': 40, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик']},
-    'ketamine': {'name': 'Ketamine', 'growth_time': 50, 'price': 65, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌡️ Термометр']},
-    'dmt': {'name': 'DMT', 'growth_time': 60, 'price': 75, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🔬 Тестер pH']},
-    'mdma': {'name': 'MDMA', 'growth_time': 40, 'price': 60, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
-    'salvia': {'name': 'Salvia', 'growth_time': 45, 'price': 30, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор']},
-    'ayahuasca': {'name': 'Ayahuasca', 'growth_time': 80, 'price': 85, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик', '🔬 Тестер pH']},
-    'mescaline': {'name': 'Mescaline', 'growth_time': 55, 'price': 90, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌡️ Термометр']},
-    'ibogaine': {'name': 'Ibogaine', 'growth_time': 65, 'price': 95, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик']},
-    'morning_glory': {'name': 'Morning Glory', 'growth_time': 35, 'price': 25, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
-    'kratom': {'name': 'Kratom', 'growth_time': 40, 'price': 20, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌿 Вентилятор']},
-    'san_pedro': {'name': 'San Pedro', 'growth_time': 90, 'price': 115, 'emoji': '🌵', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик']},
-    'amanita': {'name': 'Amanita', 'growth_time': 70, 'price': 125, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор']},
-    'psilocybe': {'name': 'Psilocybe', 'growth_time': 55, 'price': 135, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик']},
-    'cannabis_indica': {'name': 'Cannabis Indica', 'growth_time': 45, 'price': 145, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва']},
-    'cannabis_sativa': {'name': 'Cannabis Sativa', 'growth_time': 50, 'price': 155, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌿 Вентилятор']},
-    'tobacco': {'name': 'Tobacco', 'growth_time': 35, 'price': 15, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва']},
-    'coca': {'name': 'Coca', 'growth_time': 65, 'price': 175, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик']},
-    'poppy': {'name': 'Poppy', 'growth_time': 75, 'price': 185, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
-    'belladonna': {'name': 'Belladonna', 'growth_time': 85, 'price': 195, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌡️ Термометр']},
-    'datura': {'name': 'Datura', 'growth_time': 95, 'price': 205, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌿 Вентилятор']},
-    'henbane': {'name': 'Henbane', 'growth_time': 80, 'price': 215, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🔬 Тестер pH']},
-    'wormwood': {'name': 'Wormwood', 'growth_time': 60, 'price': 25, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва']},
-    'valerian': {'name': 'Valerian', 'growth_time': 55, 'price': 35, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
-    'mugwort': {'name': 'Mugwort', 'growth_time': 50, 'price': 45, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва']},
-    'jimsonweed': {'name': 'Jimsonweed', 'growth_time': 70, 'price': 255, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор']},
-    'ephedra': {'name': 'Ephedra', 'growth_time': 45, 'price': 265, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌡️ Термометр']},
-    'kava': {'name': 'Kava', 'growth_time': 85, 'price': 275, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка']},
-    'betel': {'name': 'Betel', 'growth_time': 60, 'price': 285, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик']},
-    'crack': {'name': 'Crack', 'growth_time': 45, 'price': 320, 'emoji': '💎', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик']},
-    'pcp': {'name': 'PCP', 'growth_time': 90, 'price': 380, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик', '🌿 Вентилятор']},
-    'angel_dust': {'name': 'Angel Dust', 'growth_time': 75, 'price': 340, 'emoji': '👼', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва']},
-    'bath_salts': {'name': 'Bath Salts', 'growth_time': 55, 'price': 310, 'emoji': '🛁', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик']},
-    'flakka': {'name': 'Flakka', 'growth_time': 65, 'price': 330, 'emoji': '🔥', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🌿 Вентилятор']}
+    # Schedule I наркотики - самые опасные и запрещенные
+    'heroin': {'name': 'Героин', 'growth_time': 15, 'price': 45, 'emoji': '💉', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌿 Вентилятор'], 'description': 'Белая смерть 💀 - самый опасный наркотик'},
+    'meth': {'name': 'Метамфетамин', 'growth_time': 40, 'price': 30, 'emoji': '💉', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва'], 'description': 'Кристалл мет ⚗️ - адреналин в крови'},
+    'cocaine': {'name': 'Кокаин', 'growth_time': 20, 'price': 25, 'emoji': '💎', 'required_equipment': ['🏡 Grow Box', '💡 Лампа'], 'description': 'Белый порошок 👃 - энергия и власть'},
+    'lsd': {'name': 'ЛСД', 'growth_time': 25, 'price': 50, 'emoji': '🌈', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🧴 pH Балансировщик'], 'description': 'Кислота 🌈 - путешествие в другой мир'},
+    'ecstasy': {'name': 'Экстази', 'growth_time': 60, 'price': 50, 'emoji': '💊', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🌿 Вентилятор'], 'description': 'Танцующие таблетки 💃 - любовь и энергия'},
+    'pcp': {'name': 'PCP', 'growth_time': 90, 'price': 380, 'emoji': '👹', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик', '🌿 Вентилятор'], 'description': 'Дьявольский порошок 👹 - потеря контроля'},
+    'angel_dust': {'name': 'Ангельская пыль', 'growth_time': 75, 'price': 340, 'emoji': '👼', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва'], 'description': 'Ангельский порошок 👼 - иллюзии и безумие'},
+    'bath_salts': {'name': 'Батх солтс', 'growth_time': 55, 'price': 310, 'emoji': '🛁', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик'], 'description': 'Ванная соль 🛁 - химическое безумие'},
+    'flakka': {'name': 'Флакка', 'growth_time': 65, 'price': 330, 'emoji': '🔥', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🌿 Вентилятор'], 'description': 'Огненный зомби 🔥 - суперсила и паранойя'},
+
+    # Другие наркотики
+    'marijuana': {'name': 'Марихуана', 'growth_time': 10, 'price': 10, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box'], 'description': 'Трава 🌿 - расслабление и креатив'},
+    'opium': {'name': 'Опиум', 'growth_time': 30, 'price': 15, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Маковый сок 🌺 - древний наркотик'},
+    'mushrooms': {'name': 'Псилоцибиновые грибы', 'growth_time': 50, 'price': 35, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик'], 'description': 'Магические грибы 🍄 - видения и мудрость'},
+    'hash': {'name': 'Хэш', 'growth_time': 70, 'price': 20, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа'], 'description': 'Прессованная трава 🌿 - крепкий эффект'},
+    'peyote': {'name': 'Пейот', 'growth_time': 35, 'price': 40, 'emoji': '🌵', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик'], 'description': 'Пустынный кактус 🌵 - духовное путешествие'},
+    'ketamine': {'name': 'Кетамин', 'growth_time': 50, 'price': 65, 'emoji': '💉', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌡️ Термометр'], 'description': 'Специальное K 💉 - диссоциативный трип'},
+    'dmt': {'name': 'ДМТ', 'growth_time': 60, 'price': 75, 'emoji': '🚀', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🔬 Тестер pH'], 'description': 'Духовная молния 🚀 - прорыв в реальность'},
+    'mdma': {'name': 'МДМА', 'growth_time': 40, 'price': 60, 'emoji': '💖', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка'], 'description': 'Молекула любви 💖 - эмпатия и энергия'},
+    'salvia': {'name': 'Сальвия', 'growth_time': 45, 'price': 30, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор'], 'description': 'Шалфей предсказателей 🌿 - короткий интенсивный трип'},
+    'ayahuasca': {'name': 'Аяуаска', 'growth_time': 80, 'price': 85, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик', '🔬 Тестер pH'], 'description': 'Лiana духов 🌿 - глубокое очищение'},
+    'mescaline': {'name': 'Мескалин', 'growth_time': 55, 'price': 90, 'emoji': '🌵', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌡️ Термометр'], 'description': 'Пейотный кактус 🌵 - видения пустыни'},
+    'ibogaine': {'name': 'Ибогаин', 'growth_time': 65, 'price': 95, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Африканский корень 🌿 - лечение зависимости'},
+    'morning_glory': {'name': 'Утреннее сияние', 'growth_time': 35, 'price': 25, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка'], 'description': 'Цветы LSD 🌺 - естественная кислота'},
+    'kratom': {'name': 'Кратон', 'growth_time': 40, 'price': 20, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌿 Вентилятор'], 'description': 'Таиландский лист 🌿 - стимулятор и успокоитель'},
+    'san_pedro': {'name': 'Сан-Педро', 'growth_time': 90, 'price': 115, 'emoji': '🌵', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Шаманский кактус 🌵 - видения и исцеление'},
+    'amanita': {'name': 'Мухомор', 'growth_time': 70, 'price': 125, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор'], 'description': 'Красный с белыми точками 🍄 - ядовитый трип'},
+    'psilocybe': {'name': 'Псилоцибе', 'growth_time': 55, 'price': 135, 'emoji': '🍄', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Лесные грибы 🍄 - классический психоделик'},
+    'cannabis_indica': {'name': 'Индийская конопля', 'growth_time': 45, 'price': 145, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва'], 'description': 'Расслабляющая indica 🌿 - сон и релакс'},
+    'cannabis_sativa': {'name': 'Сатива конопля', 'growth_time': 50, 'price': 155, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌿 Вентилятор'], 'description': 'Энергичная sativa 🌿 - креатив и энергия'},
+    'tobacco': {'name': 'Табак', 'growth_time': 35, 'price': 15, 'emoji': '🚬', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Никотин 🚬 - легальный наркотик'},
+    'coca': {'name': 'Кока', 'growth_time': 65, 'price': 175, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Листья коки 🌿 - основа кокаина'},
+    'poppy': {'name': 'Мак', 'growth_time': 75, 'price': 185, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка'], 'description': 'Опийный мак 🌺 - источник героина'},
+    'belladonna': {'name': 'Белладонна', 'growth_time': 85, 'price': 195, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌡️ Термометр'], 'description': 'Красавка 🌿 - ядовитая красота'},
+    'datura': {'name': 'Датура', 'growth_time': 95, 'price': 205, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌿 Вентилятор'], 'description': 'Дьявольская трава 🌺 - делирий и галлюцинации'},
+    'henbane': {'name': 'Белена', 'growth_time': 80, 'price': 215, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🔬 Тестер pH'], 'description': 'Ведьмина трава 🌿 - ведьмовской яд'},
+    'wormwood': {'name': 'Полынь', 'growth_time': 60, 'price': 25, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Абсент 🌿 - горький алкогольный трип'},
+    'valerian': {'name': 'Валериана', 'growth_time': 55, 'price': 35, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка'], 'description': 'Кошачья трава 🌿 - успокоительное'},
+    'mugwort': {'name': 'Полынь обыкновенная', 'growth_time': 50, 'price': 45, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Трава снов 🌿 - ясновидение'},
+    'jimsonweed': {'name': 'Дурман', 'growth_time': 70, 'price': 255, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🧴 pH Балансировщик', '🌿 Вентилятор'], 'description': 'Дьявольский дурман 🌺 - мощный делирий'},
+    'ephedra': {'name': 'Эфедра', 'growth_time': 45, 'price': 265, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🌡️ Термометр'], 'description': 'Стимулятор эфедрин 🌿 - естественный амфетамин'},
+    'kava': {'name': 'Кава', 'growth_time': 85, 'price': 275, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '💧 Автопоилка'], 'description': 'Океанийский корень 🌿 - расслабление без похмелья'},
+    'betel': {'name': 'Бетель', 'growth_time': 60, 'price': 285, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Азиатская жвачка 🌿 - мягкий стимулятор'},
+    'crack': {'name': 'Крэк', 'growth_time': 45, 'price': 320, 'emoji': '💎', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик'], 'description': 'Камень крэк 💎 - мгновенная зависимость'}
 }
+
+DANGEROUS_CROPS = {'heroin', 'meth', 'cocaine', 'lsd', 'ecstasy', 'pcp', 'angel_dust', 'bath_salts', 'flakka'}
 
 SHOP_ITEMS = {
     '💧 Вода': {'price': 10, 'effect': 'water'},
@@ -196,7 +201,7 @@ def apply_risk_penalty(user, event_data):
             plant_ids = list(user['plants'].keys())[:lost_count]
             for plant_id in plant_ids:
                 del user['plants'][plant_id]
-            penalty_messages.append(f"🐛 Вредители уничтожили {lost_count} растений!")
+            penalty_messages.append(f"🐛 Вредители уничтожили {lost_count} растений! 🤮")
 
     elif penalty == 'lose_equipment':
         # Повреждаем случайное оборудование
@@ -213,27 +218,27 @@ def apply_risk_penalty(user, event_data):
 # ========== НОВЫЕ ФУНКЦИИ ИЗ SCHEDULE I ==========
 def get_main_keyboard():
     return [
-        [InlineKeyboardButton("👤 Мой профиль", callback_data='my_profile'),
-         InlineKeyboardButton("🏭 Моя лаборатория", callback_data='my_lab'),
-         InlineKeyboardButton("✈️ Путешествие", callback_data='trip')],
-        [InlineKeyboardButton("👥 Друзья", callback_data='friends'),
-         InlineKeyboardButton("🏪 Магазин", callback_data='shop'),
-         InlineKeyboardButton("🎰 Казино", callback_data='location_casino')],
-        [InlineKeyboardButton("📜 Квесты", callback_data='quests'),
-         InlineKeyboardButton("🔬 Исследования", callback_data='research'),
-         InlineKeyboardButton("👨‍💼 Дилеры", callback_data='dealers')]
+        [InlineKeyboardButton("👤 Мой профиль 💰💎", callback_data='my_profile'),
+         InlineKeyboardButton("🏭 Лаборатория ⚗️🧪", callback_data='my_lab'),
+         InlineKeyboardButton("✈️ Путешествие 🌍🗺️", callback_data='trip')],
+        [InlineKeyboardButton("👥 Друзья 👬🤝", callback_data='friends'),
+         InlineKeyboardButton("🏪 Магазин 💊🛒", callback_data='shop'),
+         InlineKeyboardButton("🎰 Казино 🎲💰", callback_data='location_casino')],
+        [InlineKeyboardButton("📜 Квесты 🏆🎯", callback_data='quests'),
+         InlineKeyboardButton("🔬 Исследования 🧬🔍", callback_data='research'),
+         InlineKeyboardButton("👨‍💼 Дилеры 💵🤝", callback_data='dealers')]
     ]
 
 def get_lab_keyboard():
     return [
-        [InlineKeyboardButton("🌱 Начать синтез", callback_data='plant_menu'),
-         InlineKeyboardButton("👀 Осмотреть партии", callback_data='inspect_plants')],
-        [InlineKeyboardButton("💧 Добавить растворитель", callback_data='water_all'),
-         InlineKeyboardButton("🧪 Добавить реагент", callback_data='fertilize_plants')],
-        [InlineKeyboardButton("👨‍🔬 Завершить синтез", callback_data='harvest_all'),
-         InlineKeyboardButton("🎁 Ежедневный бонус", callback_data='daily_reward')],
-        [InlineKeyboardButton("📊 Статус лаборатории", callback_data='status'),
-         InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
+        [InlineKeyboardButton("🌱🚀 Начать синтез", callback_data='plant_menu'),
+         InlineKeyboardButton("👀🔍 Осмотреть партии", callback_data='inspect_plants')],
+        [InlineKeyboardButton("💧🌿 Добавить растворитель", callback_data='water_all'),
+         InlineKeyboardButton("🧪⚗️ Добавить реагент", callback_data='fertilize_plants')],
+        [InlineKeyboardButton("👨‍🔬✅ Завершить синтез", callback_data='harvest_all'),
+         InlineKeyboardButton("🎁💰 Ежедневный бонус", callback_data='daily_reward')],
+        [InlineKeyboardButton("📊📈 Статус лаборатории", callback_data='status'),
+         InlineKeyboardButton("⬅️🏠 Назад", callback_data='main_menu')]
     ]
 
 def get_city_keyboard():
@@ -244,7 +249,7 @@ def get_city_keyboard():
          InlineKeyboardButton("🔧 Оборудование", callback_data='equipment_shop')],
         [InlineKeyboardButton("🏠 Жилье", callback_data='housing_shop'),
          InlineKeyboardButton("🏢 Бизнесы", callback_data='business_shop')],
-        [InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
+        [InlineKeyboardButton("⬅️ Назад", callback_data='trip')]
     ]
 
 def get_trip_keyboard():
@@ -286,6 +291,83 @@ def get_casino_keyboard():
          InlineKeyboardButton("🃏 Блэкджек", callback_data='blackjack')],
         [InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
     ]
+
+def get_shop_keyboard(from_menu='city'):
+    keyboard = []
+    for item_name, item_data in SHOP_ITEMS.items():
+        keyboard.append([
+            InlineKeyboardButton(
+                f"{item_name} - {item_data['price']}💰",
+                callback_data=f"buy_{item_name}_from_shop"
+            )
+        ])
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'location_{from_menu}')])
+    return keyboard
+
+def get_equipment_shop_keyboard(from_menu='city'):
+    keyboard = []
+    equipment_items = ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик', '🌿 Вентилятор', '💉 Шприц для удобрений', '🔬 Тестер pH', '🌡️ Термометр', '💧 Автопоилка', '🛡️ Защита от вредителей']
+    for item_name in equipment_items:
+        if item_name in SHOP_ITEMS:
+            item_data = SHOP_ITEMS[item_name]
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{item_name} - {item_data['price']}💰",
+                    callback_data=f"buy_{item_name}_from_equipment"
+                )
+            ])
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'location_{from_menu}')])
+    return keyboard
+
+def get_seed_shop_keyboard(from_menu='city'):
+    keyboard = []
+    for crop_name in CROP_DATA.keys():
+        crop = CROP_DATA[crop_name]
+        keyboard.append([
+            InlineKeyboardButton(
+                f"{crop['emoji']} {crop_name} - {crop['price']}💰",
+                callback_data=f"buy_seed_{crop_name}_from_seed"
+            )
+        ])
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'location_{from_menu}')])
+    return keyboard
+
+def get_market_keyboard(from_menu='city'):
+    keyboard = []
+    # This will be populated in market function based on user inventory
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'location_{from_menu}')])
+    return keyboard
+
+def get_housing_shop_keyboard(from_menu='city'):
+    keyboard = []
+    # This will be populated in housing_shop function
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'location_{from_menu}')])
+    return keyboard
+
+def get_business_shop_keyboard(from_menu='city'):
+    keyboard = []
+    # This will be populated in business_shop function
+    keyboard.append([InlineKeyboardButton("💰 Собрать доход", callback_data=f'collect_business_income_from_business')])
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'location_{from_menu}')])
+    return keyboard
+
+def get_research_keyboard(from_menu='main'):
+    keyboard = []
+    # This will be populated in research function
+    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'{from_menu}_menu')])
+    return keyboard
+
+def get_dealers_keyboard(from_menu='main'):
+    keyboard = [
+        [InlineKeyboardButton("👨‍💼 Уличный дилер", callback_data='dealer_street_dealer_from_dealers'),
+         InlineKeyboardButton("👔 Владелец клуба", callback_data='dealer_club_owner_from_dealers')],
+        [InlineKeyboardButton("💼 Фармацевт", callback_data='dealer_pharma_rep_from_dealers'),
+         InlineKeyboardButton("🕴️ Член картеля", callback_data='dealer_cartel_member_from_dealers')],
+        [InlineKeyboardButton("🕵️‍♂️ Подпольный босс", callback_data='dealer_underground_boss_from_dealers'),
+         InlineKeyboardButton("🚢 Междунар. контрабандист", callback_data='dealer_international_smuggler_from_dealers')],
+        [InlineKeyboardButton("⬅️ Назад", callback_data=f'{from_menu}_menu')]
+    ]
+    return keyboard
 
 
 
@@ -592,7 +674,7 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.warning(f"Пользователь {username} (ID: {user_id}) не имеет семян {crop_name}")
         await query.edit_message_text(
             f"❌ У вас нет семян {crop_name} для посадки",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
         )
         return
 
@@ -601,7 +683,7 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.warning(f"Пользователь {username} (ID: {user_id}) не имеет Grow Box")
         await query.edit_message_text(
             f"❌ У вас нет Grow Box для посадки растений!\nКупите в магазине оборудования.",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
         )
         return
 
@@ -613,7 +695,7 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.warning(f"Пользователь {username} (ID: {user_id}) превысил лимит растений: {current_plants}/{building_capacity}")
         await query.edit_message_text(
             f"❌ {BUILDINGS[current_building]['name']} полон! Максимум {building_capacity} растений.\nСоберите урожай, чтобы освободить место.",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
         )
         return
 
@@ -630,7 +712,7 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"❌ Недостаточно оборудования для посадки {crop_name}!\n"
             f"Необходимо: {', '.join(missing_equipment)}\n"
             f"Купите оборудование в магазине города.",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
         )
         return
 
@@ -676,12 +758,14 @@ async def plant_crop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     save_user_data(user_data)
 
+    # Add emoji based on drug type
+    drug_emoji = CROP_DATA[crop_name]['emoji']
     await query.edit_message_text(
-        f"✅ Посажено: {crop_name}\n"
+        f"✅ Посажено: {drug_emoji} {crop_name}\n"
         f"⏳ Время роста: {int(effective_growth_time)} секунд\n"
         f"💰 Потенциальный доход: {CROP_DATA[crop_name]['price'] * 2} монет\n"
         f"🏡 Растений в Grow Box: {current_plants + 1}/5{risk_message}",
-        reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
     )
 
 async def water_plants(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -695,7 +779,7 @@ async def water_plants(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if '💧 Вода' not in user['inventory'] or user['inventory']['💧 Вода'] <= 0:
         await query.edit_message_text(
             "❌ У вас нет воды! Купите в магазине.",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
         )
         return
 
@@ -714,12 +798,12 @@ async def water_plants(update: Update, context: ContextTypes.DEFAULT_TYPE):
         save_user_data(user_data)
         await query.edit_message_text(
             f"✅ Полито растений: {watered_count}\n💧 Осталось воды: {user['inventory']['💧 Вода']}",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
         )
     else:
         await query.edit_message_text(
             "🌧 Все растения уже политы или не нуждаются в поливе",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
         )
 
 async def harvest_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -771,29 +855,20 @@ async def harvest_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📦 Урожай добавлен в инвентарь\n"
             f"⭐ Опыта: {len(harvested_plants) * 10}\n"
             f"📊 До следующего уровня: {exp_needed - user['experience']} опыта{level_up_msg}",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
         )
     else:
         await query.edit_message_text(
             "🌾 Нет готового урожая. Подождите, пока растения созреют!",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_lab_keyboard())
         )
 
 async def show_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
-    keyboard = []
-    for item_name, item_data in SHOP_ITEMS.items():
-        keyboard.append([
-            InlineKeyboardButton(
-                f"{item_name} - {item_data['price']}💰",
-                callback_data=f"buy_{item_name}"
-            )
-        ])
-    
-    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')])
-    
+
+    from_menu = 'city'  # Default from city menu
+
     await query.edit_message_text(
         "🏪 Магазин химика:\n\n"
         "💧 Вода - 10💰 (полив растений)\n"
@@ -802,7 +877,7 @@ async def show_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🌱 Семена - 25💰 (дополнительные семена)\n"
         "🏆 Премиум - 500💰 (премиум статус)\n\n"
         "Выберите товар для покупки:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup=InlineKeyboardMarkup(get_shop_keyboard(from_menu))
     )
 
 async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -818,7 +893,7 @@ async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user['money'] < SHOP_ITEMS[item_name]['price']:
         await query.edit_message_text(
             f"❌ Недостаточно денег для покупки {item_name}",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+            reply_markup=InlineKeyboardMarkup(get_city_keyboard())
         )
         return
 
@@ -830,7 +905,7 @@ async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"✅ Куплено: {item_name}\n"
         f"💰 Потрачено: {SHOP_ITEMS[item_name]['price']} монет\n"
         f"📦 В инвентаре: {user['inventory'][item_name]} шт.",
-        reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        reply_markup=InlineKeyboardMarkup(get_city_keyboard())
     )
 
 async def show_inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1711,20 +1786,7 @@ async def equipment_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    keyboard = []
-    equipment_items = ['🏡 Grow Box', '💡 Лампа', '🌱 Почва', '🧴 pH Балансировщик', '🌿 Вентилятор', '💉 Шприц для удобрений', '🔬 Тестер pH', '🌡️ Термометр', '💧 Автопоилка', '🛡️ Защита от вредителей']
-
-    for item_name in equipment_items:
-        if item_name in SHOP_ITEMS:
-            item_data = SHOP_ITEMS[item_name]
-            keyboard.append([
-                InlineKeyboardButton(
-                    f"{item_name} - {item_data['price']}💰",
-                    callback_data=f"buy_{item_name}"
-                )
-            ])
-
-    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data='location_city')])
+    from_menu = 'city'  # Default from city menu
 
     await query.edit_message_text(
         "🔧 Магазин оборудования:\n\n"
@@ -1739,7 +1801,7 @@ async def equipment_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💧 Автопоилка - 120💰 (автоматический полив на 1 час)\n"
         "🛡️ Защита от вредителей - 90💰 (защищает растения)\n\n"
         "Выберите оборудование для покупки:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup=InlineKeyboardMarkup(get_equipment_shop_keyboard(from_menu))
     )
 
 async def housing_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
