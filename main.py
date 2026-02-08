@@ -450,16 +450,9 @@ def load_user_data():
                 data = json.load(f)
             if not isinstance(data, dict):
                 data = {}
-            version = data.get("__schema_version__", 0)
-            if version < DATA_SCHEMA_VERSION:
-                # Одноразовый сброс прогресса при переходе на новую версию; дальше прогресс сохраняется
-                for key in list(data.keys()):
-                    if key != "__schema_version__":
-                        del data[key]
+            # Устанавливаем версию схемы, если отсутствует
+            if "__schema_version__" not in data:
                 data["__schema_version__"] = DATA_SCHEMA_VERSION
-                with open(USER_DATA_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-                return data
             # Исправляем отрицательные балансы, не сбрасывая прогресс
             for user_id, user in data.items():
                 if isinstance(user, dict) and 'money' in user:
@@ -467,7 +460,8 @@ def load_user_data():
             return data
         return {}
     except (json.JSONDecodeError, IOError) as e:
-        print(f"Ошибка загрузки данных: {e}")
+        print(f"Ошибка загрузки данных: {e}. Создаём новый файл данных.")
+        # В случае ошибки загрузки, возвращаем пустой словарь, но не удаляем файл
         return {}
 
 def save_user_data(data):
@@ -478,6 +472,28 @@ def save_user_data(data):
             json.dump(data, f, ensure_ascii=False, indent=2)
     except IOError as e:
         print(f"Ошибка сохранения данных: {e}")
+
+def get_or_create_user(user_id, username):
+    user_data = load_user_data()
+    if user_id not in user_data:
+        user_data[user_id] = {
+            'username': username,
+            'empire_name': f"Империя {username}",
+            'registration_complete': True,
+            'money': 1000,
+            'experience': 0,
+            'level': 1,
+            'plants': {},
+            'lab_batches': {},
+            'inventory': {'💧 Вода': 3, '🌱 marijuana': 1, '🏡 Grow Box': 1},
+            'last_watered': {},
+            'building': 'cardboard_box',
+            'businesses': {},
+            'last_business_collection': {},
+            'created_at': datetime.now().isoformat()
+        }
+        save_user_data(user_data)
+    return user_data[user_id]
 
 # ========== ОБРАБОТЧИКИ КОМАНД ==========
 async def my_lab(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -701,17 +717,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user = user_data[user_id]
 
-    # Если регистрация ещё не завершена — просим ввести название нарко-империи
+    # Автоматическая регистрация: устанавливаем название империи и завершаем регистрацию
     if not user.get('registration_complete') or not user.get('empire_name'):
-        try:
-            await update.message.reply_text(
-                "👋 Добро пожаловать в подземный мир, босс!\n\n"
-                "🧪 Придумай название своей нарко-империи и отправь его одним сообщением.\n"
-                "Пример: «Картель Белого Дьявола» или «Империя Кристаллов».",
-            )
-        except Exception as e:
-            logging.error(f"Ошибка отправки сообщения при регистрации пользователя {user_id}: {e}")
-        return
+        user['empire_name'] = f"Империя {username}"
+        user['registration_complete'] = True
+        save_user_data(user_data)
+        logging.info(f"Автоматическая регистрация пользователя {username} (ID: {user_id}) с империей: {user['empire_name']}")
 
     money = user['money']
     level = user['level']
@@ -1095,10 +1106,26 @@ async def harvest_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = str(query.from_user.id)
+    username = query.from_user.username or query.from_user.first_name
     user_data = load_user_data()
     if user_id not in user_data:
-        await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
-        return
+        user_data[user_id] = {
+            'username': username,
+            'empire_name': f"Империя {username}",
+            'registration_complete': True,
+            'money': 1000,
+            'experience': 0,
+            'level': 1,
+            'plants': {},
+            'lab_batches': {},
+            'inventory': {'💧 Вода': 3, '🌱 marijuana': 1, '🏡 Grow Box': 1},
+            'last_watered': {},
+            'building': 'cardboard_box',
+            'businesses': {},
+            'last_business_collection': {},
+            'created_at': datetime.now().isoformat()
+        }
+        save_user_data(user_data)
     user = user_data[user_id]
 
     current_time = time.time()
@@ -2827,8 +2854,24 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user_data = load_user_data()
         if user_id not in user_data:
-            await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
-            return
+            user_data[user_id] = {
+                'username': username,
+                'empire_name': f"Империя {username}",
+                'registration_complete': True,
+                'money': 1000,
+                'experience': 0,
+                'level': 1,
+                'plants': {},
+                'lab_batches': {},
+                'inventory': {'💧 Вода': 3, '🌱 marijuana': 1, '🏡 Grow Box': 1},
+                'last_watered': {},
+                'building': 'cardboard_box',
+                'businesses': {},
+                'last_business_collection': {},
+                'created_at': datetime.now().isoformat()
+            }
+            save_user_data(user_data)
+        user = user_data[user_id]
 
         handlers = {
             'main_menu': main_menu,
