@@ -22,16 +22,17 @@ CROP_DATA = {
     'cannabis_sativa': {'name': 'Сатива конопля', 'growth_time': 50, 'price': 155, 'production_cost': 185, 'emoji': '🌿', 'required_equipment': ['🏡 Grow Box', '💡 Лампа', '🌱 Почва'], 'description': 'Энергичная sativa 🌿 - креатив и энергия'},
     'opium': {'name': 'Опиум', 'growth_time': 30, 'price': 15, 'production_cost': 45, 'emoji': '🌺', 'required_equipment': ['🏡 Grow Box', '🌱 Почва'], 'description': 'Маковый сок 🌺 - древний наркотик'},
     'ecstasy': {'name': 'Экстази', 'growth_time': 80, 'price': 50, 'production_cost': 190, 'emoji': '💊', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Танцующие таблетки 💃 - любовь и энергия', 'production': 'lab'},
-    'mephedrone': {'name': 'Мефедрон', 'growth_time': 80, 'price': 50, 'production_cost': 190, 'emoji': '💊', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Меф 💊 - синтетический стимулятор', 'production': 'lab'},
     'meth': {'name': 'Метамфетамин', 'growth_time': 90, 'price': 30, 'production_cost': 190, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Кристалл мет ⚗️ - адреналин в крови', 'production': 'lab'},
     'amphetamine': {'name': 'Амфетамин', 'growth_time': 90, 'price': 30, 'production_cost': 190, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Амфетамин 💉 - мощный стимулятор', 'production': 'lab'},
-    'cocaine': {'name': 'Кокаин', 'growth_time': 45, 'price': 25, 'production_cost': 190, 'emoji': '💎', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Белый порошок 👃 - энергия и власть', 'production': 'lab'}
+    'cocaine': {'name': 'Кокаин', 'growth_time': 45, 'price': 25, 'production_cost': 190, 'emoji': '💎', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Белый порошок 👃 - энергия и власть', 'production': 'lab'},
+    'mephedrone': {'name': 'Мефедрон', 'growth_time': 80, 'price': 50, 'production_cost': 190, 'emoji': '💊', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Меф 💊 - синтетический стимулятор', 'production': 'lab'},
+    'amphetamine': {'name': 'Амфетамин', 'growth_time': 90, 'price': 30, 'production_cost': 190, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Амфетамин 💉 - мощный стимулятор', 'production': 'lab'}
 }
 
 DANGEROUS_CROPS = {'meth', 'cocaine', 'ecstasy'}
 
 # Наркотики, производимые химическим путём (в лаборатории), а не через выращивание
-LAB_DRUGS = {'ecstasy', 'mephedrone', 'meth', 'amphetamine', 'cocaine'}
+LAB_DRUGS = {'ecstasy', 'meth', 'cocaine'}
 
 # Рецепты химического синтеза для синтетических наркотиков
 CHEM_RECIPES = {
@@ -378,7 +379,7 @@ def get_shop_keyboard(from_menu='city'):
                     callback_data=f"buy_{item_name}_x5_from_shop"
                 )
             ])
-    keyboard.append([InlineKeyboardButton("⬅️ В меню магазина", callback_data='shop_main')])
+    keyboard.append([InlineKeyboardButton("⬅️ В город", callback_data='location_city')])
     return keyboard
 
 def get_equipment_shop_keyboard(from_menu='city'):

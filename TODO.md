@@ -1,5 +1,5 @@
-- Edit CROP_DATA to keep only cannabis_sativa, cannabis_indica, opium, ecstasy, meth, cocaine
-- Edit LAB_DRUGS to {'ecstasy', 'meth', 'cocaine'}
-- Edit DANGEROUS_CROPS to {'meth', 'cocaine', 'ecstasy'}
-- Edit get_shop_keyboard to set back callback to 'location_city'
-- Fix blackjack bust message to show bet_amount instead of 10
+- [x] Edit CROP_DATA to keep only cannabis_sativa, cannabis_indica, opium, ecstasy, meth, cocaine
+- [x] Edit LAB_DRUGS to {'ecstasy', 'meth', 'cocaine'}
+- [x] Edit DANGEROUS_CROPS to {'meth', 'cocaine', 'ecstasy'}
+- [x] Edit get_shop_keyboard to set back callback to 'location_city'
+- [x] Fix blackjack bust message to show bet_amount instead of 10
