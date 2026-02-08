@@ -294,3 +294,6 @@ async def run_all_tests():
     print("🎉 All tests completed successfully!")
     print("✅ Bot functionality verified locally")
 
+if __name__ == '__main__':
+    asyncio.run(run_all_tests())
+
