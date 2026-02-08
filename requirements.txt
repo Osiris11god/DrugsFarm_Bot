@@ -1,5 +1,2 @@
 python-telegram-bot>=20.0
-aiogram
-python-dotenv
-requests
-supabase
+httpx
