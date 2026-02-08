@@ -25,8 +25,7 @@ CROP_DATA = {
     'meth': {'name': 'Метамфетамин', 'growth_time': 90, 'price': 30, 'production_cost': 190, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Кристалл мет ⚗️ - адреналин в крови', 'production': 'lab'},
     'amphetamine': {'name': 'Амфетамин', 'growth_time': 90, 'price': 30, 'production_cost': 190, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Амфетамин 💉 - мощный стимулятор', 'production': 'lab'},
     'cocaine': {'name': 'Кокаин', 'growth_time': 45, 'price': 25, 'production_cost': 190, 'emoji': '💎', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Белый порошок 👃 - энергия и власть', 'production': 'lab'},
-    'mephedrone': {'name': 'Мефедрон', 'growth_time': 80, 'price': 50, 'production_cost': 190, 'emoji': '💊', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Меф 💊 - синтетический стимулятор', 'production': 'lab'},
-    'amphetamine': {'name': 'Амфетамин', 'growth_time': 90, 'price': 30, 'production_cost': 190, 'emoji': '💉', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Амфетамин 💉 - мощный стимулятор', 'production': 'lab'}
+    'mephedrone': {'name': 'Мефедрон', 'growth_time': 80, 'price': 50, 'production_cost': 190, 'emoji': '💊', 'required_equipment': ['🧫 Стол химика', '🧪 Набор прекурсоров'], 'description': 'Меф 💊 - синтетический стимулятор', 'production': 'lab'}
 }
 
 DANGEROUS_CROPS = {'meth', 'cocaine', 'ecstasy'}
@@ -379,7 +378,7 @@ def get_shop_keyboard(from_menu='city'):
                     callback_data=f"buy_{item_name}_x5_from_shop"
                 )
             ])
-    keyboard.append([InlineKeyboardButton("⬅️ В город", callback_data='location_city')])
+    keyboard.append([InlineKeyboardButton("⬅️ В меню магазина", callback_data='shop_main')])
     return keyboard
 
 def get_equipment_shop_keyboard(from_menu='city'):
@@ -1230,20 +1229,27 @@ async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    data = query.data.replace('buy_', '')
-    # Формат: buy_<item_name>_x<quantity> или buy_<item_name>_from_shop / from_equipment
-    quantity = 1
-    if '_x' in data:
-        base, qty_part = data.rsplit('_x', 1)
-        if qty_part.isdigit():
-            quantity = max(1, int(qty_part))
-        data = base
+    data = query.data
+    if not data.startswith('buy_'):
+        await query.edit_message_text("❌ Неверный формат покупки", reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard()))
+        return
 
-    # Remove suffix if present (e.g., _from_shop, _from_equipment)
+    data = data[4:]  # remove 'buy_'
+    quantity = 1
+    item_name = ""
+    section = 'shop_main'  # default
+
     if '_from_' in data:
-        item_name = data.split('_from_')[0]
+        before_from, section = data.split('_from_', 1)
+        if '_x' in before_from:
+            item_name, qty_str = before_from.rsplit('_x', 1)
+            if qty_str.isdigit():
+                quantity = max(1, int(qty_str))
+        else:
+            item_name = before_from
     else:
         item_name = data
+
     user_id = str(query.from_user.id)
 
     user_data = load_user_data()
@@ -1255,7 +1261,14 @@ async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard())
         )
         return
-    back_to_section = 'shop_chem' if item_name in CHEM_ITEMS else 'equipment_shop'
+
+    # Set back_to_section based on section
+    if section == 'shop':
+        back_to_section = 'shop_chem'
+    elif section == 'equipment':
+        back_to_section = 'equipment_shop'
+    else:
+        back_to_section = 'shop_main'
 
     total_price = SHOP_ITEMS[item_name]['price'] * quantity
 
