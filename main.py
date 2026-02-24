@@ -9,12 +9,14 @@ import shutil
 import tempfile
 import logging
 
+
 try:
     from config import BOT_TOKEN, USER_DATA_FILE
 except ImportError as e:
     print(f"Ошибка импорта config: {e}")
     print("Убедитесь, что config.py находится в той же папке, что и main.py")
     exit(1)
+
 DATA_SCHEMA_VERSION = 4  # Версия схемы данных: при переходе на 4 все старые аккаунты обнуляются и требуют новой регистрации
 
 # Себестоимость: растения = семена + вода (10) + доля почвы/расходников (20); лаба = прекурсоры (150) + доля реактивов (40)
@@ -1361,12 +1363,27 @@ async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Новый короткий формат: buyi:<id>:<qty>:<section>
     if data.startswith("buyi:"):
         try:
-            _, item_id, qty_str, section = data.split(":", 3)
-            if qty_str.isdigit():
-                quantity = max(1, int(qty_str))
-            item_name = resolve_shop_item_name(item_id) or ""
-        except Exception:
-            item_name = ""
+            parts = data.split(":")
+            if len(parts) >= 4:
+                item_id = parts[1]
+                qty_str = parts[2]
+                section = parts[3]
+                if qty_str.isdigit():
+                    quantity = max(1, int(qty_str))
+                item_name = resolve_shop_item_name(item_id) or ""
+            else:
+                await query.edit_message_text(
+                    "❌ Ошибка данных покупки. Попробуйте снова.",
+                    reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard())
+                )
+                return
+        except Exception as e:
+            logging.error(f"Ошибка парсинга buy_item: {e}, data: {data}")
+            await query.edit_message_text(
+                "❌ Ошибка обработки. Попробуйте снова.",
+                reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard())
+            )
+            return
     else:
         # Старый формат (для совместимости со старыми кнопками в чате)
         if not data.startswith('buy_'):
@@ -1385,13 +1402,21 @@ async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             item_name = data
 
-    user_id = str(query.from_user.id)
-    username = query.from_user.username or query.from_user.first_name
-    user_data, user = get_user_data_and_user(user_id, username)
+    try:
+        user_id = str(query.from_user.id)
+        username = query.from_user.username or query.from_user.first_name
+        user_data, user = get_user_data_and_user(user_id, username)
+    except Exception as e:
+        logging.error(f"Ошибка загрузки пользователя в buy_item: {e}")
+        await query.edit_message_text(
+            "❌ Ошибка загрузки данных. Попробуйте снова.",
+            reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard())
+        )
+        return
 
     if item_name not in SHOP_ITEMS:
         await query.edit_message_text(
-            f"❌ Товар {item_name} не найден в магазине",
+            f"❌ Товар не найден: {item_name}",
             reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard())
         )
         return
@@ -2307,15 +2332,28 @@ async def bj_stand(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def equipment_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    text = "🔧 Оборудование\n\n"
-    for item_name in EQUIPMENT_ITEMS:
-        if item_name in SHOP_ITEMS:
-            text += f"{item_name} - {SHOP_ITEMS[item_name]['price']}💰\n"
-    text += "\nВыберите оборудование:"
-    await query.edit_message_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(get_equipment_shop_keyboard())
-    )
+    
+    try:
+        user_id = str(query.from_user.id)
+        username = query.from_user.username or query.from_user.first_name
+        user_data, user = get_user_data_and_user(user_id, username)
+        
+        text = "🔧 Оборудование\n\n"
+        for item_name in EQUIPMENT_ITEMS:
+            if item_name in SHOP_ITEMS:
+                text += f"{item_name} - {SHOP_ITEMS[item_name]['price']}💰\n"
+        text += "\nВыберите оборудование:"
+        
+        await query.edit_message_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(get_equipment_shop_keyboard())
+        )
+    except Exception as e:
+        logging.error(f"Ошибка в equipment_shop: {e}")
+        await query.edit_message_text(
+            "❌ Произошла ошибка. Попробуйте снова.",
+            reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard())
+        )
 
 async def housing_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
