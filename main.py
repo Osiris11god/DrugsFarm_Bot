@@ -15,7 +15,7 @@ except ImportError as e:
     print(f"Ошибка импорта config: {e}")
     print("Убедитесь, что config.py находится в той же папке, что и main.py")
     exit(1)
-DATA_SCHEMA_VERSION = 3  # При смене версии прогресс больше не сбрасывается; сброс был выполнен один раз при переходе на 3
+DATA_SCHEMA_VERSION = 4  # Версия схемы данных: при переходе на 4 все старые аккаунты обнуляются и требуют новой регистрации
 
 # Себестоимость: растения = семена + вода (10) + доля почвы/расходников (20); лаба = прекурсоры (150) + доля реактивов (40)
 # Оборудование (гроубокс, лампа, стол химика) — разовое, в себестоимость не включено; продажа по production_cost * множитель дилера — всегда в плюс
@@ -492,9 +492,14 @@ def load_user_data():
                 data = json.load(f)
             if not isinstance(data, dict):
                 data = {}
-            # Устанавливаем версию схемы, если отсутствует
-            if "__schema_version__" not in data:
-                data["__schema_version__"] = DATA_SCHEMA_VERSION
+            # При смене версии схемы полностью обнуляем аккаунты (жёсткий ресет)
+            schema_version = data.get("__schema_version__", 0)
+            if schema_version != DATA_SCHEMA_VERSION:
+                logging.warning(
+                    f"Версия схемы данных изменилась ({schema_version} -> {DATA_SCHEMA_VERSION}). "
+                    f"Все старые аккаунты будут сброшены и потребуют повторной регистрации."
+                )
+                return {}
             # Исправляем отрицательные балансы, не сбрасывая прогресс
             for user_id, user in data.items():
                 if isinstance(user, dict) and 'money' in user:
@@ -549,10 +554,10 @@ def save_user_data(data):
     except IOError as e:
         logging.error(f"Ошибка сохранения данных: {e}")
 
-def _default_user(username, empire_name=None, registration_complete=True):
+def _default_user(username, empire_name=None, registration_complete=False):
     return {
         'username': username,
-        'empire_name': empire_name if empire_name is not None else f"Империя {username}",
+        'empire_name': empire_name,
         'registration_complete': registration_complete,
         'money': 1000,
         'experience': 0,
@@ -572,7 +577,7 @@ def get_user_data_and_user(user_id, username):
     user_data = load_user_data()
     user = user_data.get(user_id)
     if not isinstance(user, dict):
-        user = _default_user(username=username, registration_complete=True)
+        user = _default_user(username=username, registration_complete=False)
         user_data[user_id] = user
         save_user_data(user_data)
 
@@ -588,8 +593,9 @@ def get_user_data_and_user(user_id, username):
     user.setdefault('building', 'cardboard_box')
     user.setdefault('businesses', {})
     user.setdefault('last_business_collection', {})
-    user.setdefault('registration_complete', True)
-    if not user.get('empire_name'):
+    user.setdefault('registration_complete', False)
+    # Если пользователь уже регистрировался, но имя империи почему-то пустое — восстановим автоматически.
+    if user.get('registration_complete') and not user.get('empire_name'):
         user['empire_name'] = f"Империя {username}"
     return user_data, user
 
@@ -798,33 +804,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_data = load_user_data()
     if user_id not in user_data:
-        user_data[user_id] = {
-            'username': username,
-            'empire_name': None,
-            'registration_complete': False,
-            'money': 1000,
-            'experience': 0,
-            'level': 1,
-            'plants': {},
-            'lab_batches': {},
-            'inventory': {'💧 Вода': 3, '🌱 cannabis_indica': 1, '🏡 Grow Box': 1},  # Стартовые ресурсы
-            'last_watered': {},
-            'building': 'cardboard_box',  # Живет в коробке возле помойки
-            'businesses': {},  # Купленные бизнесы с временем последнего сбора
-            'last_business_collection': {},  # Время последнего сбора дохода от бизнесов
-            'created_at': datetime.now().isoformat()
-        }
+        # Новый пользователь: создаём аккаунт, но без завершённой регистрации
+        user_data[user_id] = _default_user(username=username, empire_name=None, registration_complete=False)
         save_user_data(user_data)
-        logging.info(f"Зарегистрирован новый пользователь: {username} (ID: {user_id})")
+        logging.info(f"Создан черновик аккаунта для пользователя {username} (ID: {user_id})")
 
     user = user_data[user_id]
 
-    # Автоматическая регистрация: устанавливаем название империи и завершаем регистрацию
+    # Если регистрация не завершена — просим ввести название империи и ничего больше не показываем
     if not user.get('registration_complete') or not user.get('empire_name'):
-        user['empire_name'] = f"Империя {username}"
-        user['registration_complete'] = True
-        save_user_data(user_data)
-        logging.info(f"Автоматическая регистрация пользователя {username} (ID: {user_id}) с империей: {user['empire_name']}")
+        await update.message.reply_text(
+            "👋 Добро пожаловать в нарко-лабораторию!\n\n"
+            "Перед началом игры придумай название своей нарко-империи.\n"
+            "Например: «Тёмный Карнавал» или «Синяя Лаборатория».\n\n"
+            "✍️ Просто отправь сообщение с названием. Минимум 3 и максимум 40 символов."
+        )
+        return
 
     money = user['money']
     level = user['level']
@@ -885,6 +880,51 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Теперь ты полноценный босс. Используй кнопки ниже, чтобы строить свою нарко-империю.",
             reply_markup=reply_markup
         )
+        return
+
+    # Обработка системы друзей (добавление/удаление по ID)
+    friend_action = context.user_data.get('awaiting_friend_action')
+    if friend_action in ('add', 'remove'):
+        raw = (update.message.text or "").strip()
+        try:
+            friend_id = int(raw)
+            if friend_id <= 0:
+                raise ValueError()
+        except ValueError:
+            await update.message.reply_text("❌ Введи корректный Telegram ID (положительное число).")
+            return
+
+        friends_list = user.setdefault('friends', [])
+
+        if friend_action == 'add':
+            if friend_id not in friends_list:
+                friends_list.append(friend_id)
+                save_user_data(user_data)
+                await update.message.reply_text(
+                    f"✅ Друг с ID {friend_id} добавлен.\n"
+                    f"Открой меню «👥 Друзья», чтобы посмотреть список.",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("👥 Открыть друзей", callback_data='friends')]])
+                )
+            else:
+                await update.message.reply_text(
+                    f"ℹ️ Этот ID уже есть в твоём списке друзей.",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("👥 Друзья", callback_data='friends')]])
+                )
+        else:  # remove
+            if friend_id in friends_list:
+                friends_list.remove(friend_id)
+                save_user_data(user_data)
+                await update.message.reply_text(
+                    f"✅ Друг с ID {friend_id} удалён из списка.",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("👥 Друзья", callback_data='friends')]])
+                )
+            else:
+                await update.message.reply_text(
+                    f"ℹ️ ID {friend_id} не найден в списке друзей.",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("👥 Друзья", callback_data='friends')]])
+                )
+
+        context.user_data.pop('awaiting_friend_action', None)
         return
 
     # Обработка ставки для рулетки
@@ -2807,14 +2847,33 @@ async def friends(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # Простая заглушка для друзей (можно расширить позже)
-    friends_text = (
-        "👥 Друзья:\n\n"
-        "Функция друзей пока в разработке.\n"
-        "Здесь будут отображаться ваши друзья и их достижения.\n"
+    user_id = str(query.from_user.id)
+    username = query.from_user.username or query.from_user.first_name
+    _, user = get_user_data_and_user(user_id, username)
+
+    friends_ids = user.get('friends', [])
+    friends_text = "👥 Друзья:\n\n"
+
+    if friends_ids:
+        friends_text += "Твои друзья (Telegram ID):\n"
+        for fid in friends_ids:
+            friends_text += f"• {fid}\n"
+        friends_text += "\n"
+    else:
+        friends_text += "Пока друзей нет.\n\n"
+
+    friends_text += (
+        "Добавление/удаление друга:\n"
+        "1) Нажми нужную кнопку.\n"
+        "2) Введи Telegram ID друга числом.\n"
+        "Эти данные видны только тебе.\n"
     )
 
-    keyboard = [[InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]]
+    keyboard = [
+        [InlineKeyboardButton("➕ Добавить друга по ID", callback_data='friends_add')],
+        [InlineKeyboardButton("➖ Удалить друга по ID", callback_data='friends_remove')],
+        [InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')],
+    ]
 
     await query.edit_message_text(
         friends_text,
@@ -2986,6 +3045,19 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await buy_item(update, context)
         elif data.startswith('sell_'):
             await sell_harvest(update, context)
+        elif data == 'friends_add':
+            context.user_data['awaiting_friend_action'] = 'add'
+            await query.edit_message_text(
+                "✏️ Введи Telegram ID друга числом.\n"
+                "Узнать его можно, используя специальные боты (например, @userinfobot).",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data='friends')]])
+            )
+        elif data == 'friends_remove':
+            context.user_data['awaiting_friend_action'] = 'remove'
+            await query.edit_message_text(
+                "✏️ Введи Telegram ID друга, которого нужно удалить, числом.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data='friends')]])
+            )
         elif data.startswith('game_'):
             if data == 'game_guess_number':
                 await game_guess_number(update, context)
