@@ -107,8 +107,8 @@ async def test_planting():
     context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
     await button_callback(mock_update, context)
 
-    # Test planting marijuana (should work since user has seeds)
-    mock_update = create_mock_update('plant_marijuana')
+    # Test planting cannabis_indica (стартовые семена)
+    mock_update = create_mock_update('plant_cannabis_indica')
     context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
     await plant_crop(mock_update, context)
     print("  ✅ Planting marijuana executed successfully")
@@ -122,8 +122,8 @@ async def test_shopping():
     context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
     await button_callback(mock_update, context)
 
-    # Test buying water
-    mock_update = create_mock_update('buy_💧 Вода')
+    # Test buying water (новый формат callback_data с коротким ID)
+    mock_update = create_mock_update('buyi:water:1:chem')
     context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
     await buy_item(mock_update, context)
     print("  ✅ Buying water executed successfully")
@@ -228,11 +228,14 @@ async def setup_test_user():
     if TEST_USER_ID not in user_data:
         user_data[TEST_USER_ID] = {
             'username': TEST_USERNAME,
+            'empire_name': f"Империя {TEST_USERNAME}",
+            'registration_complete': True,
             'money': 1000,
             'experience': 0,
             'level': 1,
             'plants': {},
-            'inventory': {'💧 Вода': 3, '🌱 marijuana': 1, '🏡 Grow Box': 1},
+            'lab_batches': {},
+            'inventory': {'💧 Вода': 3, '🌱 cannabis_indica': 1, '🏡 Grow Box': 1},
             'last_watered': {},
             'building': 'cardboard_box',
             'businesses': {},

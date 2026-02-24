@@ -5,6 +5,8 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, MessageHandler, filters
 import json
 import os
+import shutil
+import tempfile
 import logging
 
 try:
@@ -88,6 +90,34 @@ SHOP_ITEMS = {
     '⚗️ Щёлочь': {'price': 120, 'effect': 'alkali'},
     '🫙 Ацетон': {'price': 95, 'effect': 'acetone'}
 }
+
+# Короткие ID для callback_data (Telegram ограничивает callback_data до 64 байт;
+# эмодзи/пробелы в названиях легко ломают покупки).
+SHOP_ITEM_IDS = {
+    '💧 Вода': 'water',
+    '🧪 Удобрение': 'fert',
+    '🏡 Grow Box': 'box1',
+    '🏡 Расширенный Grow Box': 'box2',
+    '💡 Лампа': 'lamp',
+    '🌱 Почва': 'soil',
+    '💉 Шприц для удобрений': 'syr',
+    '💧 Автопоилка': 'auto',
+    '🛡️ Защита от вредителей': 'pest',
+    '🧪 Набор прекурсоров': 'prec',
+    '🧫 Стол химика': 'chem',
+    '🧴 Растворитель': 'solv',
+    '⚗️ Щёлочь': 'alk',
+    '🫙 Ацетон': 'acet',
+}
+SHOP_ITEM_BY_ID = {v: k for k, v in SHOP_ITEM_IDS.items()}
+
+def build_buy_callback(item_id, quantity, section):
+    quantity = max(1, int(quantity))
+    # buyi:<id>:<qty>:<section>
+    return f"buyi:{item_id}:{quantity}:{section}"
+
+def resolve_shop_item_name(item_id):
+    return SHOP_ITEM_BY_ID.get(item_id)
 # Разделы магазина: химикаты и оборудование
 CHEM_ITEMS = ['💧 Вода', '🧪 Удобрение', '🧪 Набор прекурсоров', '🧴 Растворитель', '⚗️ Щёлочь', '🫙 Ацетон']
 EQUIPMENT_ITEMS = ['🏡 Grow Box', '🏡 Расширенный Grow Box', '💡 Лампа', '🌱 Почва', '💉 Шприц для удобрений', '💧 Автопоилка', '🛡️ Защита от вредителей', '🧫 Стол химика']
@@ -366,16 +396,19 @@ def get_shop_keyboard(from_menu='city'):
     for item_name in CHEM_ITEMS:
         if item_name in SHOP_ITEMS:
             item_data = SHOP_ITEMS[item_name]
+            item_id = SHOP_ITEM_IDS.get(item_name)
+            if not item_id:
+                continue
             keyboard.append([
                 InlineKeyboardButton(
                     f"{item_name} - {item_data['price']}💰 (x1)",
-                    callback_data=f"buy_{item_name}_x1_from_shop"
+                    callback_data=build_buy_callback(item_id, 1, "chem")
                 )
             ])
             keyboard.append([
                 InlineKeyboardButton(
                     f"Купить {item_name} x5",
-                    callback_data=f"buy_{item_name}_x5_from_shop"
+                    callback_data=build_buy_callback(item_id, 5, "chem")
                 )
             ])
     keyboard.append([InlineKeyboardButton("⬅️ В меню магазина", callback_data='shop_main')])
@@ -387,16 +420,19 @@ def get_equipment_shop_keyboard(from_menu='city'):
     for item_name in EQUIPMENT_ITEMS:
         if item_name in SHOP_ITEMS:
             item_data = SHOP_ITEMS[item_name]
+            item_id = SHOP_ITEM_IDS.get(item_name)
+            if not item_id:
+                continue
             keyboard.append([
                 InlineKeyboardButton(
                     f"{item_name} - {item_data['price']}💰 (x1)",
-                    callback_data=f"buy_{item_name}_x1_from_equipment"
+                    callback_data=build_buy_callback(item_id, 1, "eq")
                 )
             ])
             keyboard.append([
                 InlineKeyboardButton(
                     f"Купить {item_name} x5",
-                    callback_data=f"buy_{item_name}_x5_from_equipment"
+                    callback_data=build_buy_callback(item_id, 5, "eq")
                 )
             ])
     keyboard.append([InlineKeyboardButton("⬅️ В меню магазина", callback_data='shop_main')])
@@ -432,7 +468,7 @@ def get_housing_shop_keyboard(from_menu='city'):
 def get_business_shop_keyboard(from_menu='city'):
     keyboard = []
     # This will be populated in business_shop function
-    keyboard.append([InlineKeyboardButton("💰 Собрать доход", callback_data=f'collect_business_income_from_business')])
+    keyboard.append([InlineKeyboardButton("💰 Собрать доход", callback_data='collect_business_income')])
     keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'location_{from_menu}')])
     return keyboard
 
@@ -442,10 +478,17 @@ def get_research_keyboard(from_menu='main'):
     keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data=f'{from_menu}_menu')])
     return keyboard
 # ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ДАННЫМИ ==========
+def _data_file_paths():
+    base_path = os.path.abspath(USER_DATA_FILE)
+    backup_path = base_path + ".bak"
+    data_dir = os.path.dirname(base_path)
+    return base_path, backup_path, data_dir
+
 def load_user_data():
+    base_path, backup_path, _ = _data_file_paths()
     try:
-        if os.path.exists(USER_DATA_FILE):
-            with open(USER_DATA_FILE, 'r', encoding='utf-8') as f:
+        if os.path.exists(base_path):
+            with open(base_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             if not isinstance(data, dict):
                 data = {}
@@ -459,40 +502,100 @@ def load_user_data():
             return data
         return {}
     except (json.JSONDecodeError, IOError) as e:
-        print(f"Ошибка загрузки данных: {e}. Создаём новый файл данных.")
-        # В случае ошибки загрузки, возвращаем пустой словарь, но не удаляем файл
+        logging.error(f"Ошибка загрузки данных: {e}. Пытаемся загрузить резервную копию.")
+        try:
+            if os.path.exists(backup_path):
+                with open(backup_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    if "__schema_version__" not in data:
+                        data["__schema_version__"] = DATA_SCHEMA_VERSION
+                    for user_id, user in data.items():
+                        if isinstance(user, dict) and 'money' in user:
+                            user['money'] = max(0, user['money'])
+                    return data
+        except Exception as backup_e:
+            logging.error(f"Не удалось загрузить резервную копию данных: {backup_e}")
         return {}
 
 def save_user_data(data):
+    base_path, backup_path, data_dir = _data_file_paths()
     try:
         if isinstance(data, dict):
             data["__schema_version__"] = DATA_SCHEMA_VERSION
-        with open(USER_DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.makedirs(data_dir or ".", exist_ok=True)
+
+        fd, tmp_path = tempfile.mkstemp(prefix="users_", suffix=".tmp", dir=(data_dir or "."))
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+        except Exception:
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+            raise
+
+        # Бэкап предыдущей версии (best-effort)
+        try:
+            if os.path.exists(base_path):
+                shutil.copy2(base_path, backup_path)
+        except Exception as be:
+            logging.warning(f"Не удалось создать резервную копию данных: {be}")
+
+        os.replace(tmp_path, base_path)
     except IOError as e:
-        print(f"Ошибка сохранения данных: {e}")
+        logging.error(f"Ошибка сохранения данных: {e}")
+
+def _default_user(username, empire_name=None, registration_complete=True):
+    return {
+        'username': username,
+        'empire_name': empire_name if empire_name is not None else f"Империя {username}",
+        'registration_complete': registration_complete,
+        'money': 1000,
+        'experience': 0,
+        'level': 1,
+        'plants': {},
+        'lab_batches': {},
+        'inventory': {'💧 Вода': 3, '🌱 cannabis_indica': 1, '🏡 Grow Box': 1},
+        'last_watered': {},
+        'building': 'cardboard_box',
+        'businesses': {},
+        'last_business_collection': {},
+        'created_at': datetime.now().isoformat()
+    }
+
+def get_user_data_and_user(user_id, username):
+    user_id = str(user_id)
+    user_data = load_user_data()
+    user = user_data.get(user_id)
+    if not isinstance(user, dict):
+        user = _default_user(username=username, registration_complete=True)
+        user_data[user_id] = user
+        save_user_data(user_data)
+
+    # Мягкая миграция на случай старых/битых записей (без сброса прогресса)
+    user.setdefault('username', username)
+    user.setdefault('inventory', {})
+    user.setdefault('plants', {})
+    user.setdefault('lab_batches', {})
+    user.setdefault('money', 0)
+    user.setdefault('experience', 0)
+    user.setdefault('level', 1)
+    user.setdefault('last_watered', {})
+    user.setdefault('building', 'cardboard_box')
+    user.setdefault('businesses', {})
+    user.setdefault('last_business_collection', {})
+    user.setdefault('registration_complete', True)
+    if not user.get('empire_name'):
+        user['empire_name'] = f"Империя {username}"
+    return user_data, user
 
 def get_or_create_user(user_id, username):
-    user_data = load_user_data()
-    if user_id not in user_data:
-        user_data[user_id] = {
-            'username': username,
-            'empire_name': f"Империя {username}",
-            'registration_complete': True,
-            'money': 1000,
-            'experience': 0,
-            'level': 1,
-            'plants': {},
-            'lab_batches': {},
-            'inventory': {'💧 Вода': 3, '🌱 marijuana': 1, '🏡 Grow Box': 1},
-            'last_watered': {},
-            'building': 'cardboard_box',
-            'businesses': {},
-            'last_business_collection': {},
-            'created_at': datetime.now().isoformat()
-        }
-        save_user_data(user_data)
-    return user_data[user_id]
+    _, user = get_user_data_and_user(user_id, username)
+    return user
 
 # ========== ОБРАБОТЧИКИ КОМАНД ==========
 async def my_lab(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -704,7 +807,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'level': 1,
             'plants': {},
             'lab_batches': {},
-            'inventory': {'💧 Вода': 3, '🌱 marijuana': 1, '🏡 Grow Box': 1},  # Стартовые ресурсы
+            'inventory': {'💧 Вода': 3, '🌱 cannabis_indica': 1, '🏡 Grow Box': 1},  # Стартовые ресурсы
             'last_watered': {},
             'building': 'cardboard_box',  # Живет в коробке возле помойки
             'businesses': {},  # Купленные бизнесы с временем последнего сбора
@@ -1106,26 +1209,7 @@ async def harvest_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = str(query.from_user.id)
     username = query.from_user.username or query.from_user.first_name
-    user_data = load_user_data()
-    if user_id not in user_data:
-        user_data[user_id] = {
-            'username': username,
-            'empire_name': f"Империя {username}",
-            'registration_complete': True,
-            'money': 1000,
-            'experience': 0,
-            'level': 1,
-            'plants': {},
-            'lab_batches': {},
-            'inventory': {'💧 Вода': 3, '🌱 marijuana': 1, '🏡 Grow Box': 1},
-            'last_watered': {},
-            'building': 'cardboard_box',
-            'businesses': {},
-            'last_business_collection': {},
-            'created_at': datetime.now().isoformat()
-        }
-        save_user_data(user_data)
-    user = user_data[user_id]
+    user_data, user = get_user_data_and_user(user_id, username)
 
     current_time = time.time()
     harvested_plants = []
@@ -1230,30 +1314,40 @@ async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     data = query.data
-    if not data.startswith('buy_'):
-        await query.edit_message_text("❌ Неверный формат покупки", reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard()))
-        return
-
-    data = data[4:]  # remove 'buy_'
     quantity = 1
     item_name = ""
     section = 'shop_main'  # default
 
-    if '_from_' in data:
-        before_from, section = data.split('_from_', 1)
-        if '_x' in before_from:
-            item_name, qty_str = before_from.rsplit('_x', 1)
+    # Новый короткий формат: buyi:<id>:<qty>:<section>
+    if data.startswith("buyi:"):
+        try:
+            _, item_id, qty_str, section = data.split(":", 3)
             if qty_str.isdigit():
                 quantity = max(1, int(qty_str))
-        else:
-            item_name = before_from
+            item_name = resolve_shop_item_name(item_id) or ""
+        except Exception:
+            item_name = ""
     else:
-        item_name = data
+        # Старый формат (для совместимости со старыми кнопками в чате)
+        if not data.startswith('buy_'):
+            await query.edit_message_text("❌ Неверный формат покупки", reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard()))
+            return
+
+        data = data[4:]  # remove 'buy_'
+        if '_from_' in data:
+            before_from, section = data.split('_from_', 1)
+            if '_x' in before_from:
+                item_name, qty_str = before_from.rsplit('_x', 1)
+                if qty_str.isdigit():
+                    quantity = max(1, int(qty_str))
+            else:
+                item_name = before_from
+        else:
+            item_name = data
 
     user_id = str(query.from_user.id)
-
-    user_data = load_user_data()
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     if item_name not in SHOP_ITEMS:
         await query.edit_message_text(
@@ -1263,9 +1357,9 @@ async def buy_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Set back_to_section based on section
-    if section == 'shop':
+    if section in ('shop', 'chem'):
         back_to_section = 'shop_chem'
-    elif section == 'equipment':
+    elif section in ('equipment', 'eq'):
         back_to_section = 'equipment_shop'
     else:
         back_to_section = 'shop_main'
@@ -1297,8 +1391,8 @@ async def show_inventory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
     
     inventory_text = "📦 Ваш инвентарь:\n\n"
     
@@ -1324,11 +1418,8 @@ async def show_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    if user_id not in user_data:
-        await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
-        return
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     current_time = time.time()
     status_text = f"📊 Статус лаборатории:\n\n"
@@ -1372,11 +1463,8 @@ async def daily_reward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    if user_id not in user_data:
-        await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
-        return
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     current_date = datetime.now().date().isoformat()
     last_reward_date = user.get('last_daily_reward', '')
@@ -1766,11 +1854,8 @@ async def fertilize_plants(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    if user_id not in user_data:
-        await query.edit_message_text("Вы не зарегистрированы. Используйте /start сначала.", reply_markup=InlineKeyboardMarkup(get_main_keyboard()))
-        return
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     if '🧪 Удобрение' not in user['inventory'] or user['inventory']['🧪 Удобрение'] <= 0:
         await query.edit_message_text(
@@ -2389,6 +2474,12 @@ async def courier_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = str(query.from_user.id)
     user_data = load_user_data()
+    if user_id not in user_data:
+        await query.edit_message_text(
+            "❌ Данные не найдены. Отправьте /start, чтобы заново начать игру.",
+            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        )
+        return
     user = user_data[user_id]
 
     keyboard = []
@@ -2429,6 +2520,12 @@ async def hire_courier(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(query.from_user.id)
 
     user_data = load_user_data()
+    if user_id not in user_data:
+        await query.edit_message_text(
+            "❌ Данные не найдены. Отправьте /start, чтобы заново начать игру.",
+            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        )
+        return
     user = user_data[user_id]
 
     if courier_id not in COURIERS:
@@ -2621,6 +2718,12 @@ async def collect_business_income(update: Update, context: ContextTypes.DEFAULT_
 
     user_id = str(query.from_user.id)
     user_data = load_user_data()
+    if user_id not in user_data:
+        await query.edit_message_text(
+            "❌ Данные не найдены. Отправьте /start, чтобы заново начать игру.",
+            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
+        )
+        return
     user = user_data[user_id]
 
     current_time = time.time()
@@ -2865,26 +2968,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         logging.info(f"Кнопка нажата пользователем {username} (ID: {user_id}): {data}")
 
-        user_data = load_user_data()
-        if user_id not in user_data:
-            user_data[user_id] = {
-                'username': username,
-                'empire_name': f"Империя {username}",
-                'registration_complete': True,
-                'money': 1000,
-                'experience': 0,
-                'level': 1,
-                'plants': {},
-                'lab_batches': {},
-                'inventory': {'💧 Вода': 3, '🌱 marijuana': 1, '🏡 Grow Box': 1},
-                'last_watered': {},
-                'building': 'cardboard_box',
-                'businesses': {},
-                'last_business_collection': {},
-                'created_at': datetime.now().isoformat()
-            }
-            save_user_data(user_data)
-        user = user_data[user_id]
+        user_data, user = get_user_data_and_user(user_id, username)
 
         handlers = {
             'main_menu': main_menu,
@@ -2923,7 +3007,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await plant_crop(update, context)
         elif data.startswith('buy_seed_'):
             await buy_seed(update, context)
-        elif data.startswith('buy_'):
+        elif data.startswith('buy_') or data.startswith('buyi:'):
             await buy_item(update, context)
         elif data.startswith('sell_'):
             await sell_harvest(update, context)
@@ -3028,15 +3112,81 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/addcoins - Добавить 100 $"
     )
 
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    username = update.effective_user.username or update.effective_user.first_name
+    _, user = get_user_data_and_user(user_id, username)
+
+    current_time = time.time()
+    status_text = "📊 Статус лаборатории:\n\n"
+
+    plants = user.get('plants', {})
+    if plants:
+        status_text += f"🌱 Растений на ферме: {len(plants)}\n\n"
+        for plant_id, plant in list(plants.items()):
+            growth_elapsed = current_time - plant.get('planted_time', current_time)
+            time_left = max(0, plant.get('growth_time', 0) - growth_elapsed)
+            last_watered = user.get('last_watered', {}).get(plant_id, 0)
+            is_recently_watered = current_time - last_watered <= 1800
+
+            if time_left > 0:
+                status = f"⏳ {int(time_left)}с осталось"
+            elif is_recently_watered:
+                status = "✅ Готово к сбору!"
+            else:
+                status = "💧 Нужен полив!"
+
+            status_text += f"{plant.get('name', '???')}: {status}\n"
+    else:
+        status_text += "🌱 Нет посаженных растений\n"
+
+    status_text += f"\n💰 Баланс: {user.get('money', 0)} $\n"
+    status_text += f"📊 Уровень: {user.get('level', 1)} (опыт: {user.get('experience', 0)}/{user.get('level', 1) * 100})"
+
+    await update.message.reply_text(
+        status_text,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("💧 Полить растения", callback_data='water_all')],
+            [InlineKeyboardButton("👨‍🌾 Собрать урожай", callback_data='harvest_all')],
+            [InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]
+        ])
+    )
+
+async def inventory_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    username = update.effective_user.username or update.effective_user.first_name
+    _, user = get_user_data_and_user(user_id, username)
+
+    inventory_text = "📦 Ваш инвентарь:\n\n"
+    inv = user.get('inventory', {})
+    if inv:
+        for item, quantity in inv.items():
+            inventory_text += f"{item}: {quantity} шт.\n"
+    else:
+        inventory_text += "Пусто\n"
+
+    inventory_text += f"\n💰 Деньги: {user.get('money', 0)} $\n"
+    inventory_text += f"⭐ Опыт: {user.get('experience', 0)}/{user.get('level', 1) * 100}\n"
+    inventory_text += f"📊 Уровень: {user.get('level', 1)}"
+
+    await update.message.reply_text(
+        inventory_text,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data='main_menu')]])
+    )
+
+async def shop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "🏪 Магазин\n\nВыберите раздел:",
+        reply_markup=InlineKeyboardMarkup(get_shop_main_keyboard())
+    )
+
 async def add_coins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-    user_data = load_user_data()
-    if user_id not in user_data:
-        await update.message.reply_text("Вы не зарегистрированы. Используйте /start сначала.")
-        return
-    user_data[user_id]['money'] += 100
+    username = update.effective_user.username or update.effective_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
+    user['money'] = int(user.get('money', 0)) + 100
     save_user_data(user_data)
-    await update.message.reply_text(f"Добавлено 100 $. Новый баланс: {user_data[user_id]['money']} $.")
+    await update.message.reply_text(f"Добавлено 100 $. Новый баланс: {user['money']} $.")
 
 # ========== ЗАПУСК БОТА ==========
 def main():
@@ -3060,6 +3210,9 @@ def main():
         application = Application.builder().token(BOT_TOKEN).build()
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("help", help_command))
+        application.add_handler(CommandHandler("status", status_command))
+        application.add_handler(CommandHandler("inventory", inventory_command))
+        application.add_handler(CommandHandler("shop", shop_command))
         application.add_handler(CommandHandler("addcoins", add_coins))
         # Обработчик нажатий на кнопки
         application.add_handler(CallbackQueryHandler(button_callback))
