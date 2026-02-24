@@ -603,8 +603,8 @@ async def my_lab(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     money = user.get('money', 0)
     level = user.get('level', 1)
@@ -2282,14 +2282,8 @@ async def housing_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    if user_id not in user_data:
-        await query.edit_message_text(
-            "❌ Данные не найдены. Отправьте /start чтобы начать игру.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ В меню", callback_data='main_menu')]])
-        )
-        return
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     current_building = user.get('building', 'cardboard_box')
     current_building_data = BUILDINGS.get(current_building, BUILDINGS['cardboard_box'])
@@ -2320,14 +2314,8 @@ async def business_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    if user_id not in user_data:
-        await query.edit_message_text(
-            "❌ Данные не найдены. Отправьте /start чтобы начать игру.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ В меню", callback_data='main_menu')]])
-        )
-        return
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     keyboard = []
     for business_id, business_data in BUSINESSES.items():
@@ -2363,8 +2351,8 @@ async def chem_lab(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     text = (
         "⚗️ Химический синтез:\n\n"
@@ -2473,14 +2461,8 @@ async def courier_shop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    if user_id not in user_data:
-        await query.edit_message_text(
-            "❌ Данные не найдены. Отправьте /start, чтобы заново начать игру.",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
-        )
-        return
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     keyboard = []
     for courier_id, courier_data in COURIERS.items():
@@ -2518,15 +2500,8 @@ async def hire_courier(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     courier_id = query.data.replace('hire_courier_', '')
     user_id = str(query.from_user.id)
-
-    user_data = load_user_data()
-    if user_id not in user_data:
-        await query.edit_message_text(
-            "❌ Данные не найдены. Отправьте /start, чтобы заново начать игру.",
-            reply_markup=InlineKeyboardMarkup(get_main_keyboard())
-        )
-        return
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     if courier_id not in COURIERS:
         await query.edit_message_text("❌ Недействительный кладмен!", reply_markup=InlineKeyboardMarkup(get_city_keyboard()))
@@ -2563,8 +2538,8 @@ async def collect_courier_income(update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
 
     user_id = str(query.from_user.id)
-    user_data = load_user_data()
-    user = user_data[user_id]
+    username = query.from_user.username or query.from_user.first_name
+    user_data, user = get_user_data_and_user(user_id, username)
 
     couriers = user.get('couriers', {})
     last_collection = user.get('last_courier_collection', {})
